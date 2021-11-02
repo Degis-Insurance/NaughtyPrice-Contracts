@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/Degis-Insurance/NaughtyPrice-Contracts/issues"
   },
-  "homepage": "https://github.com/Degis-Insurance/NaughtyPrice-Contracts#readme"
+  "homepage": "https://github.com/Degis-Insurance/NaughtyPrice-Contracts#readme",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.3.2"
+  }
 }
