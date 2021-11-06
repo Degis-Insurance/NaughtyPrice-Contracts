@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/Degis-Insurance/NaughtyPrice-Contracts#readme",
   "dependencies": {
-    "@openzeppelin/contracts": "^4.3.2"
+    "@openzeppelin/contracts": "^4.3.2",
+    "prb-math": "^2.4.1"
   }
 }

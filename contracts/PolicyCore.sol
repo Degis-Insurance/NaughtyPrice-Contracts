@@ -21,7 +21,7 @@ contract PolicyCore {
     }
 
     /**
-     @notice Mint Policy Token 1:1
+     @notice Mint Policy Token 1:1 USDT
      */
     function mintPolicyToken(address _policyToken, uint256 _amount) public {
         IERC20 policyToken = IERC20(_policyToken);
@@ -30,4 +30,23 @@ contract PolicyCore {
 
         policyToken.mint(msg.sender, _amount);
     }
+
+    /**
+     * @notice
+     */
+    function addLiquidity() external {}
+
+    function removeLiquidity() external {}
+
+    function swapTokensforExactTokens(
+        uint256 _amountIn,
+        uint256 _amountOut,
+        address _to
+    ) external {}
+
+    function swapExactTokensforTokens(
+        uint256 _amountIn,
+        uint256 _amountOut,
+        address _to
+    ) external {}
 }

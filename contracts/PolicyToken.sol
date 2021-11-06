@@ -2,8 +2,9 @@
 pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract policyToken is ERC20 {
+contract PolicyToken is ERC20 {
     address public owner;
+    address public minter;
 
     constructor(
         string memory _name,
@@ -16,6 +17,10 @@ contract policyToken is ERC20 {
     modifier onlyOwner() {
         require(msg.sender == owner, "only owner can call this function");
         _;
+    }
+
+    function passMinterRole(address _newMinter) public onlyOwner {
+        minter = _newMinter;
     }
 
     function mint(address _account, uint256 _amount) public onlyOwner {
