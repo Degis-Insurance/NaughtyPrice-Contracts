@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "./PoolLPToken.sol";
+import "./PoolLPToken.sol" as LPToken;
 import "prb-math/contracts/PRBMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract NaughtyPair {
+    using SafeERC20 for IERC20;
+
     address public factory;
 
-    address public token0;
-    address public token1;
+    address public token0; // Insurance Token
+    address public token1; // USDT
 
     uint256 private reserve0;
     uint256 private reserve1;
@@ -114,10 +117,12 @@ contract NaughtyPair {
         address feeTo = INaughtyFactory(factory).feeTo();
         feeOn = feeTo != address(0); // 地址是0就是没开启0.5%fee
         uint256 _kLast = kLast; // gas savings
+
         if (feeOn) {
             if (_kLast != 0) {
-                uint256 rootK = PRBMath.sqrt(_reserve0 * _reserve1);
-                uint256 rootKLast = PRBMath.sqrt(_kLast);
+                uint256 rootK = PRBMath.sqrt(_reserve0 * _reserve1); // sqrt(k)
+                uint256 rootKLast = PRBMath.sqrt(_kLast); // sqrt(kLast)
+                // sqrt(k) increase => transaction fee got => 1/6 to feeTo address
                 if (rootK > rootKLast) {
                     uint256 numerator = totalSupply * (rootK - rootKLast);
                     uint256 denominator = rootK * 5 + rootKLast;
@@ -143,17 +148,14 @@ contract NaughtyPair {
         uint256 balance0 = IERC20(_token0).balanceOf(address(this));
         uint256 balance1 = IERC20(_token1).balanceOf(address(this));
 
-        uint256 liquidity = balanceOf[address(this)];
+        uint256 liquidity = LPToken.balanceOf(address(this)); // how many lp tokens in the pool
 
         bool feeOn = _mintFee(_reserve0, _reserve1);
         uint256 _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
 
         amount0 = (liquidity * balance0) / _totalSupply; // using balances ensures pro-rata distribution
         amount1 = (liquidity * balance1) / _totalSupply; // using balances ensures pro-rata distribution
-        require(
-            amount0 > 0 && amount1 > 0,
-            "UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED"
-        );
+        require(amount0 > 0 && amount1 > 0, "INSUFFICIENT_LIQUIDITY_BURNED");
 
         _burn(address(this), liquidity);
         _safeTransfer(_token0, _to, amount0);
@@ -163,7 +165,9 @@ contract NaughtyPair {
         balance1 = IERC20(_token1).balanceOf(address(this));
 
         _update(balance0, balance1, _reserve0, _reserve1);
-        if (feeOn) kLast = uint256(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
+
+        if (feeOn) kLast = reserve0 * reserve1; // reserve0 and reserve1 are up-to-date
+
         emit Burn(msg.sender, amount0, amount1, _to);
     }
 
@@ -178,7 +182,7 @@ contract NaughtyPair {
             "Output amount need to be >0"
         );
 
-        (uint256 _reserve0, uint256 _reserve1, ) = getReserves(); // gas savings
+        (uint256 _reserve0, uint256 _reserve1) = getReserves(); // gas savings
         require(
             _amount0Out < _reserve0 && _amount1Out < _reserve1,
             "Not enough liquidity"
@@ -190,9 +194,10 @@ contract NaughtyPair {
             // scope for _token{0,1}, avoids stack too deep errors
             address _token0 = token0;
             address _token1 = token1;
-            require(to != _token0 && to != _token1, "UniswapV2: INVALID_TO");
-            if (_amount0Out > 0) _safeTransfer(_token0, to, _amount0Out); // optimistically transfer tokens
-            if (_amount1Out > 0) _safeTransfer(_token1, to, _amount1Out); // optimistically transfer tokens
+            require(to != _token0 && to != _token1, "INVALID_TO");
+
+            if (_amount0Out > 0) IERC20(_token0).safeTransfer(to, _amount0Out); // optimistically transfer tokens
+            if (_amount1Out > 0) IERC20(_token1).safeTransfer(to, _amount1Out); // optimistically transfer tokens
 
             balance0 = IERC20(_token0).balanceOf(address(this));
             balance1 = IERC20(_token1).balanceOf(address(this));
@@ -203,10 +208,7 @@ contract NaughtyPair {
         uint256 amount1In = balance1 > _reserve1 - _amount1Out
             ? balance1 - (_reserve1 - _amount1Out)
             : 0;
-        require(
-            amount0In > 0 || amount1In > 0,
-            "UniswapV2: INSUFFICIENT_INPUT_AMOUNT"
-        );
+        require(amount0In > 0 || amount1In > 0, "INSUFFICIENT_INPUT_AMOUNT");
 
         {
             // scope for reserve{0,1}Adjusted, avoids stack too deep errors
@@ -215,7 +217,7 @@ contract NaughtyPair {
             require(
                 balance0Adjusted * balance1Adjusted >=
                     _reserve0 * _reserve1 * 1000**2,
-                "UniswapV2: K"
+                "K"
             );
         }
 

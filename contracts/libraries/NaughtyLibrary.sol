@@ -2,5 +2,93 @@
 pragma solidity 0.8.9;
 
 import "../interfaces/INaughtyPair.sol";
+import "../interfaces/INaughtyFactory.sol";
 
-library NaughtyLibrary {}
+library NaughtyLibrary {
+    /**
+     * @notice Used when swap exact tokens for tokens (in is fixed)
+     */
+    function getAmountsOut(
+        address factory,
+        uint256 _amountIn,
+        address _tokenIn,
+        address _tokenOut
+    ) internal view returns (uint256[] memory amounts) {
+        uint256(reserveIn, reserveOut) = getReserves(
+            factory,
+            _tokenIn,
+            _tokenOut
+        );
+        amounts = getAmountOut(amounts[i], reserveIn, reserveOut);
+    }
+
+    /**
+     * @notice Used when swap tokens for exact tokens (out is fixed)
+     */
+    function getAmountsIn(
+        address factory,
+        uint256 _amountOut,
+        address _tokenIn,
+        address _tokenOut
+    ) internal view returns (uint256 amounts) {
+        uint256(reserveIn, reserveOut) = getReserves(
+            factory,
+            _tokenIn,
+            _tokenOut
+        );
+        amounts = getAmountIn(reserveIn, reserveOut);
+    }
+
+    // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+    function getAmountOut(
+        uint256 amountIn,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) internal pure returns (uint256 amountOut) {
+        require(amountIn > 0, "UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT");
+        require(
+            reserveIn > 0 && reserveOut > 0,
+            "UniswapV2Library: INSUFFICIENT_LIQUIDITY"
+        );
+        uint256 amountInWithFee = amountIn * 997;
+        uint256 numerator = amountInWithFee * reserveOut;
+        uint256 denominator = reserveIn * 1000 + amountInWithFee;
+
+        amountOut = numerator / denominator;
+    }
+
+    // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
+    function getAmountIn(
+        uint256 amountOut,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) internal pure returns (uint256 amountIn) {
+        require(amountOut > 0, "UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT");
+        require(
+            reserveIn > 0 && reserveOut > 0,
+            "UniswapV2Library: INSUFFICIENT_LIQUIDITY"
+        );
+        uint256 numerator = reserveIn.mul(amountOut).mul(1000);
+        uint256 denominator = reserveOut.sub(amountOut).mul(997);
+        amountIn = (numerator / denominator).add(1);
+    }
+
+    // fetches and sorts the reserves for a pair
+    function getReserves(
+        address factory,
+        address tokenA,
+        address tokenB
+    ) internal view returns (uint256 reserveA, uint256 reserveB) {
+        address pairAddress = INaughtyFactory(factory).getPairAddress(
+            tokenA,
+            tokenB
+        );
+
+        (uint256 reserve0, uint256 reserve1) = INaughtyPair(pairAddress)
+            .getReserves();
+
+        (reserveA, reserveB) = tokenA == token0
+            ? (reserve0, reserve1)
+            : (reserve1, reserve0);
+    }
+}

@@ -14,13 +14,29 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  *      Token 0 may change but Token 1 is always USDT.
  */
 
-contract naughtyFactory {
+contract NaughtyFactory {
     ///@dev Token0 Address => Pool Address
     mapping(address => address) getPair;
     address[] allPairs;
     address[] allTokens;
 
     address public USDT;
+
+    /**
+     * @notice Get the pair address deployed by the factory
+     *         Index the pair address by the insurance token address rather than USDT address
+     */
+    function getPairAddress(address _tokenAddress1, address _tokenAddress2)
+        public
+        view
+        returns (address _pairAddress)
+    {
+        if (_tokenAddress1 == USDT) {
+            _pairAddress = getPair[_tokenAddress2];
+        } else {
+            _pairAddress = getPair[_tokenAddress1];
+        }
+    }
 
     /**
      * @notice For each round we need to first create the policytoken(ERC20)
