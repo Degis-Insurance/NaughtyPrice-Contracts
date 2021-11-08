@@ -13,13 +13,13 @@ library NaughtyLibrary {
         uint256 _amountIn,
         address _tokenIn,
         address _tokenOut
-    ) internal view returns (uint256[] memory amounts) {
-        uint256(reserveIn, reserveOut) = getReserves(
+    ) internal returns (uint256 amounts) {
+        (uint256 reserveIn, uint256 reserveOut) = getReserves(
             factory,
             _tokenIn,
             _tokenOut
         );
-        amounts = getAmountOut(amounts[i], reserveIn, reserveOut);
+        amounts = getAmountOut(_amountIn, reserveIn, reserveOut);
     }
 
     /**
@@ -30,13 +30,13 @@ library NaughtyLibrary {
         uint256 _amountOut,
         address _tokenIn,
         address _tokenOut
-    ) internal view returns (uint256 amounts) {
-        uint256(reserveIn, reserveOut) = getReserves(
+    ) internal returns (uint256 amounts) {
+        (uint256 reserveIn, uint256 reserveOut) = getReserves(
             factory,
             _tokenIn,
             _tokenOut
         );
-        amounts = getAmountIn(reserveIn, reserveOut);
+        amounts = getAmountIn(_amountOut, reserveIn, reserveOut);
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
@@ -45,11 +45,9 @@ library NaughtyLibrary {
         uint256 reserveIn,
         uint256 reserveOut
     ) internal pure returns (uint256 amountOut) {
-        require(amountIn > 0, "UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT");
-        require(
-            reserveIn > 0 && reserveOut > 0,
-            "UniswapV2Library: INSUFFICIENT_LIQUIDITY"
-        );
+        require(amountIn > 0, "insufficient input amount");
+        require(reserveIn > 0 && reserveOut > 0, "insufficient liquidity");
+
         uint256 amountInWithFee = amountIn * 997;
         uint256 numerator = amountInWithFee * reserveOut;
         uint256 denominator = reserveIn * 1000 + amountInWithFee;
@@ -63,14 +61,12 @@ library NaughtyLibrary {
         uint256 reserveIn,
         uint256 reserveOut
     ) internal pure returns (uint256 amountIn) {
-        require(amountOut > 0, "UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT");
-        require(
-            reserveIn > 0 && reserveOut > 0,
-            "UniswapV2Library: INSUFFICIENT_LIQUIDITY"
-        );
-        uint256 numerator = reserveIn.mul(amountOut).mul(1000);
-        uint256 denominator = reserveOut.sub(amountOut).mul(997);
-        amountIn = (numerator / denominator).add(1);
+        require(amountOut > 0, "insufficient output amount");
+        require(reserveIn > 0 && reserveOut > 0, "insufficient liquidity");
+
+        uint256 numerator = reserveIn * amountOut * 1000;
+        uint256 denominator = (reserveOut - amountOut) * 997;
+        amountIn = (numerator / denominator) + 1;
     }
 
     // fetches and sorts the reserves for a pair
@@ -78,7 +74,7 @@ library NaughtyLibrary {
         address factory,
         address tokenA,
         address tokenB
-    ) internal view returns (uint256 reserveA, uint256 reserveB) {
+    ) public returns (uint256 reserveA, uint256 reserveB) {
         address pairAddress = INaughtyFactory(factory).getPairAddress(
             tokenA,
             tokenB
@@ -87,8 +83,37 @@ library NaughtyLibrary {
         (uint256 reserve0, uint256 reserve1) = INaughtyPair(pairAddress)
             .getReserves();
 
-        (reserveA, reserveB) = tokenA == token0
-            ? (reserve0, reserve1)
-            : (reserve1, reserve0);
+        (reserveA, reserveB) = (reserve0, reserve1);
+    }
+
+    /**
+     * @notice Get pair address
+     * @param factory: Naughty price factory address
+     * @param tokenA: TokenA address
+     * @param tokenB: TokenB address
+     */
+    function getPairAddress(
+        address factory,
+        address tokenA,
+        address tokenB
+    ) external returns (address) {
+        address pairAddress = INaughtyFactory(factory).getPairAddress(
+            tokenA,
+            tokenB
+        );
+
+        return pairAddress;
+    }
+
+    // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
+    function quote(
+        uint256 amountA,
+        uint256 reserveA,
+        uint256 reserveB
+    ) internal pure returns (uint256 amountB) {
+        require(amountA > 0, "insufficient amount");
+        require(reserveA > 0 && reserveB > 0, "insufficient liquidity");
+
+        amountB = (amountA * reserveB) / reserveA;
     }
 }

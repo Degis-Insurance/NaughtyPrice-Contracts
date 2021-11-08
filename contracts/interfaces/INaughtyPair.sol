@@ -5,4 +5,22 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface INaughtyPair is IERC20 {
     function getReserves() external view returns (uint256, uint256);
+
+    function getPairAddress(
+        address,
+        address,
+        address
+    ) external returns (address);
+
+    function swap(
+        uint256,
+        uint256,
+        address
+    ) external;
+
+    function burn(address) external returns (uint256, uint256);
+
+    function mint(address) external returns (uint256);
+
+    function initialize(address, address) external;
 }

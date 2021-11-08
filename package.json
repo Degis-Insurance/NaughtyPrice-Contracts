@@ -18,6 +18,14 @@
   "homepage": "https://github.com/Degis-Insurance/NaughtyPrice-Contracts#readme",
   "dependencies": {
     "@openzeppelin/contracts": "^4.3.2",
+    "@truffle/hdwallet-provider": "^1.6.0",
+    "babel-polyfill": "^6.26.0",
+    "babel-register": "^6.26.0",
+    "dotenv": "^10.0.0",
     "prb-math": "^2.4.1"
+  },
+  "devDependencies": {
+    "solc-0.8": "npm:solc@^0.8.9",
+    "solidity-docgen": "^0.5.16"
   }
 }
