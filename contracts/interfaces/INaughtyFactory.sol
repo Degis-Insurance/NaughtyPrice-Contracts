@@ -9,4 +9,8 @@ interface INaughtyFactory {
     function feeTo() external view returns (address);
 
     function feeToSetter() external view returns (address);
+
+    function deployPolicyToken(string memory) external returns (address);
+
+    function deployPool(address) external returns (address);
 }

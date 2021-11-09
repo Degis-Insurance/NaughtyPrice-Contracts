@@ -36,7 +36,7 @@ contract NaughtyFactory is INaughtyFactory {
     /**
      * @notice Next token to be deployed
      */
-    function getLatestTokenAddress() public returns (address) {
+    function getLatestTokenAddress() public view returns (address) {
         uint256 currentToken = _nextId - 1;
         return allTokens[currentToken];
     }
@@ -62,16 +62,19 @@ contract NaughtyFactory is INaughtyFactory {
      * @notice After deploy the policytoken and get the address,
      *         we deploy the IT-USDT pool contract
      */
-    function deployPool(address token0) public returns (address _poolAddress) {
+    function deployPool(address _policyToken)
+        public
+        returns (address _poolAddress)
+    {
         bytes memory bytecode = type(PolicyToken).creationCode;
 
-        bytes32 salt = keccak256(abi.encodePacked(token0, USDT));
+        bytes32 salt = keccak256(abi.encodePacked(_policyToken, USDT));
 
         _poolAddress = _deploy(bytecode, salt);
 
-        INaughtyPair(_poolAddress).initialize(token0, USDT);
+        INaughtyPair(_poolAddress).initialize(_policyToken, USDT);
 
-        getPair[token0] = _poolAddress;
+        getPair[_policyToken] = _poolAddress;
     }
 
     /// @notice Deploy function with create2
@@ -104,11 +107,17 @@ contract NaughtyFactory is INaughtyFactory {
         _nextId++;
     }
 
+    /**
+     * @notice Set the "feeTo" account, only called by the "feeToSetter"
+     */
     function setFeeTo(address _feeTo) external {
         require(msg.sender == feeToSetter, "only feetosetter can call");
         feeTo = _feeTo;
     }
 
+    /**
+     * @notice Set the new "feeToSetter" account, only called by the old "feeToSetter"
+     */
     function setFeeToSetter(address _feeToSetter) external {
         require(msg.sender == feeToSetter, "only feetosetter can call");
         feeToSetter = _feeToSetter;
