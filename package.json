@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/Degis-Insurance/NaughtyPrice-Contracts#readme",
   "dependencies": {
+    "@chainlink/contracts": "^0.2.2",
     "@openzeppelin/contracts": "^4.3.2",
     "@truffle/hdwallet-provider": "^1.6.0",
     "babel-polyfill": "^6.26.0",

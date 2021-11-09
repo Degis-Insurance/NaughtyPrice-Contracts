@@ -13,8 +13,13 @@ import "./interfaces/INaughtyFactory.sol";
 
 /**
  * @title PolicyCore
- * @notice 1. Deposit USDT and mint PolicyTokens
- *         2. Claim for payout with PolicyTokens
+ * @notice Core logic of Naughty Price
+ *         Preset:
+ *              Deploy policyToken contract
+ *              Deploy policyToken-USDT contract
+ *         User Interaction:
+ *              1. Deposit USDT and mint PolicyTokens
+ *              2. Claim for payout with PolicyTokens
  */
 contract PolicyCore {
     using SafeERC20 for IERC20;
@@ -32,6 +37,14 @@ contract PolicyCore {
     constructor(address _usdt) {
         USDT = _usdt;
         owner = msg.sender;
+    }
+
+    function findAddressbyName(string memory _tokenName)
+        public
+        view
+        returns (address)
+    {
+        return policyTokenAddressMapping[_tokenName];
     }
 
     /**
@@ -84,6 +97,11 @@ contract PolicyCore {
         IPolicyToken policyToken = IPolicyToken(_policyToken);
 
         require(
+            userQuota[msg.sender][_policyToken] >= _amount,
+            "user's quota not sufficient"
+        );
+
+        require(
             IERC20(USDT).balanceOf(address(this)) >= _amount,
             "contract's USDT balance not sufficient"
         );
@@ -94,4 +112,6 @@ contract PolicyCore {
 
         userQuota[msg.sender][_policyToken] -= _amount;
     }
+
+    function settlePolicyToken(address _policyToken) public {}
 }
