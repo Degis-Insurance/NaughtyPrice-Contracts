@@ -32,6 +32,14 @@ contract NaughtyRouter {
 
     /**
      * @notice Add liquidity
+     * @param _token0: Address of policyToken
+     * @param _token1: Address of USDT
+     * @param _amountADesired: Amount of policyToken desired
+     * @param _amountBDesired: Amount of USDT desired
+     * @param _amountAMin: Minimum amoutn of policyToken
+     * @param _amountBMin: Minimum amount of USDT
+     * @param _to: Address that receive the lp token, normally the user himself
+     * @param _deadline: Transaction will revert after this deadline
      */
     function addLiquidity(
         address _token0,
@@ -74,6 +82,13 @@ contract NaughtyRouter {
         liquidity = INaughtyPair(pair).mint(_to);
     }
 
+    /**
+     * @notice Finish the erc20 transfer operation
+     * @param _token: ERC20 token address
+     * @param _from: Address to give out the token
+     * @param _to: Pair address to receive the token
+     * @param _amount: Transfer amount
+     */
     function transferHelper(
         address _token,
         address _from,

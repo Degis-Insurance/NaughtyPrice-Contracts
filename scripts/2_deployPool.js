@@ -1,4 +1,4 @@
-const avax301 = "0x971720B186F14e806F57658FdE1aC0e0D8b7259e";
+const avax301 = "0x573209A4eE09D585A856463154701F9B511ECCeF";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");

@@ -30,7 +30,7 @@ module.exports = async (callback) => {
     console.log(policyTokenAddress);
 
     const ad = await policyCore.findAddressbyName("AVAX30-202101");
-    console.log(ad);
+    console.log("policy token address:", ad);
 
     callback(true);
   } catch (err) {

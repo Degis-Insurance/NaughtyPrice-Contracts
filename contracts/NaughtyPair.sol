@@ -95,7 +95,7 @@ contract NaughtyPair is PoolLPToken {
         uint256 _totalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
         if (_totalSupply == 0) {
             liquidity = PRBMath.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
-            LPMint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
+            LPMint(address(this), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
         } else {
             liquidity = min(
                 (amount0 * _totalSupply) / _reserve0,
