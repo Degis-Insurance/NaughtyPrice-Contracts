@@ -19,9 +19,10 @@ contract NaughtyRouter {
 
     mapping(address => mapping(uint256 => uint256)) userQuota;
 
-    constructor(address _usdt) {
+    constructor(address _usdt, address _factory) {
         USDT = _usdt;
         owner = msg.sender;
+        factory = _factory;
     }
 
     modifier beforeDeadline(uint256 _deadLine) {
