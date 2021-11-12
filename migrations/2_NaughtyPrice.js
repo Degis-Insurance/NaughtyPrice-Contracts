@@ -4,7 +4,7 @@ const NaughtyRouter = artifacts.require("NaughtyRouter");
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyLibrary = artifacts.require("NaughtyLibrary");
 
-const deployerAddress = "0x5a9FD75810Ed1176eBba30e719f0a30855aef6eb";
+const deployerAddress = "0xeFcbFe29c8cE02Dc1C4c2C3baacd9D7F60f5311B";
 
 /**
  * @dev Deploy: USDT(for test, mainnet will have a fixed address)

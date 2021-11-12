@@ -25,28 +25,43 @@ module.exports = async (callback) => {
 
     const policy = await PolicyToken.at(avax301);
 
-    await policy.approve(router.address, web3.utils.toWei("20", "ether"), {
+    const usdt_before = await usdt.balanceOf(mainAccount, {
+      from: mainAccount,
+    });
+    const policy_before = await policy.balanceOf(mainAccount, {
       from: mainAccount,
     });
 
-    await usdt.approve(router.address, web3.utils.toWei("20", "ether"), {
-      from: mainAccount,
-    });
+    console.log("usdt balance before:", parseInt(usdt_before) / 1e18);
+    console.log("policy_before:", parseInt(policy_before) / 1e18);
 
     let date = new Date().getTime();
-    const tx = await router.addLiquidity(
+
+    await policy.approve(router.address, web3.utils.toWei("21", "ether"), {
+      from: mainAccount,
+    });
+
+    // 用最多21个policy token 换10个usdt出来
+    const tx = await router.swapTokensforExactTokens(
+      web3.utils.toWei("21", "ether"),
+      web3.utils.toWei("10", "ether"),
       avax301,
       usdt.address,
-      web3.utils.toWei("20", "ether"),
-      web3.utils.toWei("20", "ether"),
-      web3.utils.toWei("10", "ether"),
-      web3.utils.toWei("10", "ether"),
       mainAccount,
       date + 6000,
       { from: mainAccount }
     );
-
     console.log(tx.tx);
+
+    const usdt_after = await usdt.balanceOf(mainAccount, {
+      from: mainAccount,
+    });
+    const policy_after = await policy.balanceOf(mainAccount, {
+      from: mainAccount,
+    });
+
+    console.log("usdt balance before:", parseInt(usdt_after) / 1e18);
+    console.log("policy_before:", parseInt(policy_after) / 1e18);
 
     callback(true);
   } catch (err) {

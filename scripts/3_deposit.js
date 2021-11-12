@@ -1,5 +1,5 @@
-const avax301 = "0x573209A4eE09D585A856463154701F9B511ECCeF";
-const pairAddress = "0x38a7477A88a70c3f6a622CC99a59c32C91488b0E";
+const avax301 = "0xB489eBF43f10902F1A7Db2BEB5De4B7e82983057";
+const pairAddress = "0xCb417b5831D4D2a3818c7aEce27d6a8F624d4750";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
