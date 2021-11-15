@@ -4,7 +4,9 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface INaughtyPair is IERC20 {
-    function getReserves() external view returns (uint256, uint256);
+    function deadline() external view returns (uint256);
+
+    function getReserves() external view returns (uint112, uint112);
 
     function getPairAddress(
         address,

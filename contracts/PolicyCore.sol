@@ -88,7 +88,7 @@ contract PolicyCore is IPolicyCore {
      * @notice Check if this stablecoin is supported
      * @param _stablecoin: Stablecoin address
      */
-    modifier supportedStableCoin(address _stablecoin) {
+    modifier supportedStablecoin(address _stablecoin) {
         require(
             stablecoin[_stablecoin] == true,
             "Do not support this stablecoin"
@@ -142,7 +142,7 @@ contract PolicyCore is IPolicyCore {
     /**
      * @notice Add new supported stablecoin
      */
-    function addStableCoin(address _newStablecoin) public onlyOwner {
+    function addStablecoin(address _newStablecoin) public onlyOwner {
         stablecoin[_newStablecoin] = true;
     }
 
@@ -179,18 +179,19 @@ contract PolicyCore is IPolicyCore {
      * @param _stablecoin: Address of the stable coin
      * @return The address of the pool just deployed
      */
-    function deployPool(string memory _policyTokenName, address _stablecoin)
-        public
-        supportedStableCoin(_stablecoin)
-        returns (address)
-    {
+    function deployPool(
+        string memory _policyTokenName,
+        address _stablecoin,
+        uint256 _poolDeadline
+    ) public supportedStablecoin(_stablecoin) returns (address) {
         address policyTokenAddress = policyTokenInfoMapping[_policyTokenName]
             .policyTokenAddress;
 
         // Deploy a new pool (policyToken <=> stablecoin)
         address poolAddress = INaughtyFactory(factory).deployPool(
             policyTokenAddress,
-            _stablecoin
+            _stablecoin,
+            _poolDeadline
         );
 
         whichStablecoin[policyTokenAddress] = _stablecoin;
@@ -394,7 +395,7 @@ contract PolicyCore is IPolicyCore {
     /**
      * @notice Check if this is a stablecoin address supported, used in factory
      */
-    function isStableCoinAddress(address _coinAddress)
+    function isStablecoinAddress(address _coinAddress)
         external
         view
         returns (bool)

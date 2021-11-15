@@ -74,28 +74,121 @@ contract NaughtyRouter {
 
         transferHelper(_token0, msg.sender, pair, amountA);
         transferHelper(_token1, msg.sender, pair, amountB);
-        // {
-        //     IERC20(_token0).safeTransferFrom(msg.sender, pair, amountA);
-        //     IERC20(_token1).safeTransferFrom(msg.sender, pair, amountB);
-        // }
 
         liquidity = INaughtyPair(pair).mint(_to);
     }
 
     /**
-     * @notice Finish the erc20 transfer operation
-     * @param _token: ERC20 token address
-     * @param _from: Address to give out the token
-     * @param _to: Pair address to receive the token
-     * @param _amount: Transfer amount
+     * @notice Remove liquidity from the pool
+     * @param _tokenA: Insurance token address
+     * @param _liquidity: The lptoken amount to be removed
+     * @param _amountAMin: Minimum
      */
-    function transferHelper(
-        address _token,
-        address _from,
+    function removeLiquidity(
+        address _tokenA,
+        address _tokenB,
+        uint256 _liquidity,
+        uint256 _amountAMin,
+        uint256 _amountBMin,
         address _to,
-        uint256 _amount
-    ) internal {
-        IERC20(_token).safeTransferFrom(_from, _to, _amount);
+        uint256 _deadline
+    )
+        public
+        beforeDeadline(_deadline)
+        returns (uint256 amount0, uint256 amount1)
+    {
+        address pair = NaughtyLibrary.getPairAddress(factory, _tokenA, _tokenB);
+
+        INaughtyPair(pair).safeTransferFrom(msg.sender, pair, _liquidity); // send liquidity to pair
+
+        // Amount0: insurance token
+        (amount0, amount1) = INaughtyPair(pair).burn(_to);
+
+        require(amount0 >= _amountAMin, "Insufficient insurance token amount");
+        require(amount1 >= _amountBMin, "Insufficient USDT token");
+    }
+
+    /**
+     * @notice 指定换出的token数量
+     * @param _amountInMax: zz
+     */
+    function swapTokensforExactTokens(
+        uint256 _amountInMax,
+        uint256 _amountOut,
+        address _tokenIn,
+        address _tokenOut,
+        address _to,
+        uint256 _deadline
+    ) external beforeDeadline(_deadline) returns (uint256 amounts) {
+        address pair = NaughtyLibrary.getPairAddress(
+            factory,
+            _tokenIn,
+            _tokenOut
+        );
+        // Each pool has a deadline
+        uint256 poolDeadline = INaughtyPair(pair).deadline();
+        require(
+            block.timestamp <= poolDeadline,
+            "This pool has been frozen for swapping"
+        );
+
+        amounts = NaughtyLibrary.getAmountsIn(
+            factory,
+            _amountOut,
+            _tokenIn,
+            _tokenOut
+        );
+
+        require(amounts <= _amountInMax, "excessive output amount");
+
+        IERC20(_tokenIn).safeTransferFrom(msg.sender, pair, amounts);
+
+        uint256 amount0Out = (_tokenIn == USDT) ? _amountOut : 0;
+        uint256 amount1Out = (_tokenIn == USDT) ? 0 : _amountOut;
+
+        INaughtyPair(pair).swap(amount0Out, amount1Out, _to);
+    }
+
+    /**
+     * @notice 指定输入的token数量
+     * @param _amountIn: The exact amount of the tokens put in
+     * @param _amountOutMin: Minimum amount of tokens out, if not reach then revert
+     */
+    function swapExactTokensforTokens(
+        uint256 _amountIn,
+        uint256 _amountOutMin,
+        address _tokenIn,
+        address _tokenOut,
+        address _to,
+        uint256 _deadline
+    ) external beforeDeadline(_deadline) returns (uint256 amounts) {
+        address pair = NaughtyLibrary.getPairAddress(
+            factory,
+            _tokenIn,
+            _tokenOut
+        );
+        // Each pool has a deadline
+        uint256 poolDeadline = INaughtyPair(pair).deadline();
+        require(
+            block.timestamp <= poolDeadline,
+            "This pool has been frozen for swapping"
+        );
+
+        amounts = NaughtyLibrary.getAmountsOut(
+            factory,
+            _amountIn,
+            _tokenIn,
+            _tokenOut
+        );
+
+        require(amounts >= _amountOutMin, "excessive output amount");
+
+        IERC20(_tokenIn).safeTransferFrom(msg.sender, pair, _amountIn);
+
+        uint256 amount0Out = (_tokenIn == USDT) ? amounts : 0;
+        uint256 amount1Out = (_tokenIn == USDT) ? 0 : amounts;
+
+        INaughtyPair(pair).swap(amount0Out, amount1Out, _to);
     }
 
     /**
@@ -141,110 +234,18 @@ contract NaughtyRouter {
     }
 
     /**
-     * @notice Remove liquidity from the pool
-     * @param _tokenA: Insurance token address
-     * @param _liquidity: The lptoken amount to be removed
-     * @param _amountAMin:
+     * @notice Finish the erc20 transfer operation
+     * @param _token: ERC20 token address
+     * @param _from: Address to give out the token
+     * @param _to: Pair address to receive the token
+     * @param _amount: Transfer amount
      */
-    function removeLiquidity(
-        address _tokenA,
-        uint256 _liquidity,
-        uint256 _amountAMin,
-        uint256 _amountBMin,
+    function transferHelper(
+        address _token,
+        address _from,
         address _to,
-        uint256 _deadline
-    )
-        public
-        beforeDeadline(_deadline)
-        returns (uint256 amount0, uint256 amount1)
-    {
-        address pair = NaughtyLibrary.getPairAddress(factory, _tokenA, USDT);
-
-        INaughtyPair(pair).safeTransferFrom(msg.sender, pair, _liquidity); // send liquidity to pair
-
-        // amount0: insurance token
-        (amount0, amount1) = INaughtyPair(pair).burn(_to);
-
-        require(amount0 >= _amountAMin, "Insufficient insurance token amount");
-        require(amount1 >= _amountBMin, "Insufficient USDT token");
-    }
-
-    /**
-     * @notice 指定换出的token数量
-     * @param _amountInMax: zz
-     */
-    function swapTokensforExactTokens(
-        uint256 _amountInMax,
-        uint256 _amountOut,
-        address _tokenIn,
-        address _tokenOut,
-        address _to,
-        uint256 _deadline
-    ) external beforeDeadline(_deadline) returns (uint256 amounts) {
-        amounts = NaughtyLibrary.getAmountsIn(
-            factory,
-            _amountOut,
-            _tokenIn,
-            _tokenOut
-        );
-
-        require(amounts <= _amountInMax, "excessive output amount");
-
-        IERC20(_tokenIn).safeTransferFrom(
-            msg.sender,
-            NaughtyLibrary.getPairAddress(factory, _tokenIn, _tokenOut),
-            amounts
-        );
-
-        uint256 amount0Out = (_tokenIn == USDT) ? _amountOut : 0;
-        uint256 amount1Out = (_tokenIn == USDT) ? 0 : _amountOut;
-
-        address pair = NaughtyLibrary.getPairAddress(
-            factory,
-            _tokenIn,
-            _tokenOut
-        );
-
-        INaughtyPair(pair).swap(amount0Out, amount1Out, _to);
-    }
-
-    /**
-     * @notice 指定输入的token数量
-     * @param _amountIn: The exact amount of the tokens put in
-     * @param _amountOutMin: Minimum amount of tokens out, if not reach then revert
-     */
-    function swapExactTokensforTokens(
-        uint256 _amountIn,
-        uint256 _amountOutMin,
-        address _tokenIn,
-        address _tokenOut,
-        address _to,
-        uint256 _deadline
-    ) external beforeDeadline(_deadline) returns (uint256 amounts) {
-        amounts = NaughtyLibrary.getAmountsOut(
-            factory,
-            _amountIn,
-            _tokenIn,
-            _tokenOut
-        );
-
-        require(amounts >= _amountOutMin, "excessive output amount");
-
-        IERC20(_tokenIn).safeTransferFrom(
-            msg.sender,
-            NaughtyLibrary.getPairAddress(factory, _tokenIn, _tokenOut),
-            _amountIn
-        );
-
-        uint256 amount0Out = (_tokenIn == USDT) ? amounts : 0;
-        uint256 amount1Out = (_tokenIn == USDT) ? 0 : amounts;
-
-        address pair = NaughtyLibrary.getPairAddress(
-            factory,
-            _tokenIn,
-            _tokenOut
-        );
-
-        INaughtyPair(pair).swap(amount0Out, amount1Out, _to);
+        uint256 _amount
+    ) internal {
+        IERC20(_token).safeTransferFrom(_from, _to, _amount);
     }
 }

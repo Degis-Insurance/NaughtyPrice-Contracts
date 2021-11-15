@@ -25,11 +25,14 @@ interface INaughtyRouter {
     /**
      * @notice Remove liquidity from the pool
      * @param _tokenA: Insurance token address
+     * @param _tokenB: Stablecoin address
      * @param _liquidity: The lptoken amount to be removed
-     * @param _amountAMin:
+     * @param _amountAMin: Minimum policy token amount
+     * @param _amountBMin: Minimum stablecoin amount
      */
     function removeLiquidity(
         address _tokenA,
+        address _tokenB,
         uint256 _liquidity,
         uint256 _amountAMin,
         uint256 _amountBMin,

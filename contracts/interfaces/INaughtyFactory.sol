@@ -14,7 +14,9 @@ interface INaughtyFactory {
         external
         returns (address);
 
-    function deployPool(address _policyTokenAddress, address _stablecoin)
-        external
-        returns (address);
+    function deployPool(
+        address _policyTokenAddress,
+        address _stablecoin,
+        uint256 _deadline
+    ) external returns (address);
 }

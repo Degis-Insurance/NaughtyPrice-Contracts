@@ -4,7 +4,7 @@ pragma solidity 0.8.9;
 interface IPolicyCore {
     event SettleFinalResult(string _policyTokenName, int256 price);
 
-    function isStableCoinAddress(address _coinAddress) external returns (bool);
+    function isStablecoinAddress(address _coinAddress) external returns (bool);
 
     function deposit(
         string memory _policyTokenName,

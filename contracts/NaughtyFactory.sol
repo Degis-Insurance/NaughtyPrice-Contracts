@@ -64,7 +64,7 @@ contract NaughtyFactory is INaughtyFactory {
     {
         // Policy token address at the first place
         (address token0, address token1) = IPolicyCore(policyCore)
-            .isStableCoinAddress(_tokenAddress2)
+            .isStablecoinAddress(_tokenAddress2)
             ? (_tokenAddress1, _tokenAddress2)
             : (_tokenAddress2, _tokenAddress1);
 
@@ -89,10 +89,11 @@ contract NaughtyFactory is INaughtyFactory {
      * @param _stablecoin: Address of the stable coin
      * @return Address of the pool
      */
-    function deployPool(address _policyTokenAddress, address _stablecoin)
-        public
-        returns (address)
-    {
+    function deployPool(
+        address _policyTokenAddress,
+        address _stablecoin,
+        uint256 _deadline
+    ) public returns (address) {
         bytes memory bytecode = type(NaughtyPair).creationCode;
 
         bytes32 salt = keccak256(

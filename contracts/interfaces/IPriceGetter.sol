@@ -13,6 +13,11 @@ interface IPriceGetter {
         uint80 answeredInRound
     );
 
+    function getPriceFeedAddress(string memory _tokenName)
+        external
+        view
+        returns (address);
+
     function setPriceFeed(string memory _tokenName, address _feedAddress)
         external;
 

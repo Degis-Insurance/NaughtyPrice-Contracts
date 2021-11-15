@@ -11,7 +11,7 @@ contract PoolLPToken is ERC20("Naughty Pool LP", "NLP") {
         _burn(_account, _amount);
     }
 
-    function LPBalanceOf(address _account) public returns (uint256) {
+    function LPBalanceOf(address _account) public view returns (uint256) {
         return balanceOf(_account);
     }
 }

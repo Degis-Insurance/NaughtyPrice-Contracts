@@ -72,7 +72,7 @@ contract NaughtyProxy {
         );
     }
 
-    function swapExactTokensforTokens(
+    function swapTokensforExactTokens(
         uint256 _amountInMax,
         uint256 _amountOut,
         address _tokenIn,
@@ -114,6 +114,7 @@ contract NaughtyProxy {
 
     function removeLiquidity(
         address _tokenA,
+        address _tokenB,
         uint256 _liquidity,
         uint256 _amountAMin,
         uint256 _amountBMin,
@@ -122,6 +123,7 @@ contract NaughtyProxy {
     ) external {
         INaughtyRouter(naughtyRouter).removeLiquidity(
             _tokenA,
+            _tokenB,
             _liquidity,
             _amountAMin,
             _amountBMin,
