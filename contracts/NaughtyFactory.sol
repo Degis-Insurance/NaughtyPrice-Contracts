@@ -7,6 +7,7 @@ import "./NaughtyPair.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/INaughtyPair.sol";
 import "./interfaces/INaughtyFactory.sol";
+import "./interfaces/IPolicyCore.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -22,8 +23,9 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 contract NaughtyFactory is INaughtyFactory {
     using Strings for uint256;
 
-    ///@dev Token0 Address => Pool Address
-    mapping(address => address) getPair;
+    // PolicyToken Address => StableCoin Address => Pool Address
+    mapping(address => mapping(address => address)) getPair;
+
     address[] allPairs;
     address[] allTokens;
 
@@ -43,6 +45,7 @@ contract NaughtyFactory is INaughtyFactory {
 
     /**
      * @notice Next token to be deployed
+     * @return Latest token address
      */
     function getLatestTokenAddress() public view returns (address) {
         uint256 currentToken = _nextId - 1;
@@ -51,19 +54,23 @@ contract NaughtyFactory is INaughtyFactory {
 
     /**
      * @notice Get the pair address deployed by the factory
-     *         Index the pair address by the insurance token address rather than USDT address
+     *         PolicyToken address first, and then stablecoin address
      *         The order of the token not matters
+     * @return Pool address of the two tokens
      */
     function getPairAddress(address _tokenAddress1, address _tokenAddress2)
         public
-        view
-        returns (address _pairAddress)
+        returns (address)
     {
-        if (_tokenAddress1 == USDT) {
-            _pairAddress = getPair[_tokenAddress2];
-        } else {
-            _pairAddress = getPair[_tokenAddress1];
-        }
+        // Policy token address at the first place
+        (address token0, address token1) = IPolicyCore(policyCore)
+            .isStableCoinAddress(_tokenAddress2)
+            ? (_tokenAddress1, _tokenAddress2)
+            : (_tokenAddress2, _tokenAddress1);
+
+        address _pairAddress = getPair[token0][token1];
+
+        return _pairAddress;
     }
 
     /**
@@ -78,49 +85,63 @@ contract NaughtyFactory is INaughtyFactory {
     /**
      * @notice After deploy the policytoken and get the address,
      *         we deploy the IT-USDT pool contract
-     * @param _policyToken: Address of policy token
+     * @param _policyTokenAddress: Address of policy token
+     * @param _stablecoin: Address of the stable coin
+     * @return Address of the pool
      */
-    function deployPool(address _policyToken)
+    function deployPool(address _policyTokenAddress, address _stablecoin)
         public
-        returns (address _poolAddress)
+        returns (address)
     {
         bytes memory bytecode = type(NaughtyPair).creationCode;
 
         bytes32 salt = keccak256(
             abi.encodePacked(
-                addressToString(_policyToken),
-                addressToString(USDT)
+                addressToString(_policyTokenAddress),
+                addressToString(_stablecoin)
             )
         );
 
-        _poolAddress = _deploy(bytecode, salt);
+        address _poolAddress = _deploy(bytecode, salt);
 
-        INaughtyPair(_poolAddress).initialize(_policyToken, USDT);
+        INaughtyPair(_poolAddress).initialize(
+            _policyTokenAddress,
+            _stablecoin,
+            _deadline
+        );
 
-        getPair[_policyToken] = _poolAddress;
+        getPair[_policyTokenAddress][_stablecoin] = _poolAddress;
+
+        allPairs.push(_poolAddress);
+
+        return _poolAddress;
     }
 
     /**
      * @notice For each round we need to first create the policytoken(ERC20)
-     * @param _tokenName: Name of the policyToken
+     * @param _policyTokenName: Name of the policyToken
+     * @return PolicyToken address
      */
-    function deployPolicyToken(string memory _tokenName)
+    function deployPolicyToken(string memory _policyTokenName)
         public
-        returns (address _tokenAddress)
+        returns (address)
     {
-        bytes32 salt = keccak256(
-            abi.encodePacked(_tokenName, addressToString(USDT))
-        );
+        bytes32 salt = keccak256(abi.encodePacked(_policyTokenName));
 
-        bytes memory bytecode = getPolicyTokenBytecode(_tokenName);
+        bytes memory bytecode = getPolicyTokenBytecode(_policyTokenName);
 
-        _tokenAddress = _deploy(bytecode, salt);
+        address _policTokenAddress = _deploy(bytecode, salt);
 
-        allTokens.push(_tokenAddress);
+        allTokens.push(_policTokenAddress);
+
         _nextId++;
+
+        return _policTokenAddress;
     }
 
-    /// @notice Deploy function with create2
+    /**
+     * @notice Deploy function with create2
+     */
     function _deploy(bytes memory code, bytes32 salt)
         internal
         returns (address addr)
@@ -149,6 +170,11 @@ contract NaughtyFactory is INaughtyFactory {
         feeToSetter = _feeToSetter;
     }
 
+    /**
+     * @notice Transfer address to string
+     * @param _addr: Input address
+     * @return Output string form
+     */
     function addressToString(address _addr)
         internal
         pure

@@ -152,10 +152,10 @@ contract NaughtyRouter {
         uint256 _amountAMin,
         uint256 _amountBMin,
         address _to,
-        uint256 deadline
+        uint256 _deadline
     )
         public
-        beforeDeadline(deadline)
+        beforeDeadline(_deadline)
         returns (uint256 amount0, uint256 amount1)
     {
         address pair = NaughtyLibrary.getPairAddress(factory, _tokenA, USDT);

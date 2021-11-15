@@ -20,6 +20,8 @@ contract NaughtyPair is PoolLPToken {
 
     bool public unlocked = true;
 
+    uint256 public deadline; // Every pool will have a deadline
+
     uint256 public kLast; // K after last swap
 
     uint256 public constant MINIMUM_LIQUIDITY = 10**3; // minimum liquidity locked
@@ -55,7 +57,11 @@ contract NaughtyPair is PoolLPToken {
     /**
      * @notice Initialize the contract status after the deployment by factory
      */
-    function initialize(address _token0, address _token1) external {
+    function initialize(
+        address _token0,
+        address _token1,
+        uint256 _deadline
+    ) external {
         require(
             msg.sender == factory,
             "can only be initialized by the factory contract"
@@ -63,6 +69,7 @@ contract NaughtyPair is PoolLPToken {
 
         token0 = _token0;
         token1 = _token1;
+        deadline = _deadline;
     }
 
     /**

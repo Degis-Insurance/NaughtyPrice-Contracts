@@ -22,5 +22,9 @@ interface INaughtyPair is IERC20 {
 
     function mint(address) external returns (uint256);
 
-    function initialize(address, address) external;
+    function initialize(
+        address _token0,
+        address _token1,
+        uint256 _deadline
+    ) external;
 }
