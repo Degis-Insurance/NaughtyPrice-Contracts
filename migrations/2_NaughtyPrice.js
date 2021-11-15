@@ -3,8 +3,7 @@ const USDT = artifacts.require("USDT");
 const NaughtyRouter = artifacts.require("NaughtyRouter");
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyLibrary = artifacts.require("NaughtyLibrary");
-
-const deployerAddress = "0xeFcbFe29c8cE02Dc1C4c2C3baacd9D7F60f5311B";
+const PriceGetter = artifacts.require("PriceGetter");
 
 /**
  * @dev Deploy: USDT(for test, mainnet will have a fixed address)
@@ -16,16 +15,19 @@ const deployerAddress = "0xeFcbFe29c8cE02Dc1C4c2C3baacd9D7F60f5311B";
 module.exports = async function (deployer) {
   await deployer.deploy(USDT);
 
-  await deployer.deploy(NaughtyFactory, deployerAddress, USDT.address);
+  await deployer.deploy(PriceGetter);
+
+  await deployer.deploy(NaughtyFactory);
 
   await deployer.deploy(NaughtyLibrary);
   await deployer.link(NaughtyLibrary, NaughtyRouter);
-  await deployer.deploy(NaughtyRouter, USDT.address, NaughtyFactory.address);
+  await deployer.deploy(NaughtyRouter, NaughtyFactory.address);
 
   await deployer.deploy(
     PolicyCore,
     USDT.address,
     NaughtyFactory.address,
-    NaughtyRouter.address
+    NaughtyRouter.address,
+    PriceGetter.address
   );
 };

@@ -3,6 +3,7 @@ pragma solidity 0.8.9;
 
 import "../interfaces/INaughtyPair.sol";
 import "../interfaces/INaughtyFactory.sol";
+import "../interfaces/IPolicyCore.sol";
 
 library NaughtyLibrary {
     /**
@@ -74,16 +75,13 @@ library NaughtyLibrary {
         address factory,
         address tokenA,
         address tokenB
-    ) public returns (uint256 reserveA, uint256 reserveB) {
+    ) public returns (uint112 reserve0, uint112 reserve1) {
         address pairAddress = INaughtyFactory(factory).getPairAddress(
             tokenA,
             tokenB
         );
 
-        (uint256 reserve0, uint256 reserve1) = INaughtyPair(pairAddress)
-            .getReserves();
-
-        (reserveA, reserveB) = (reserve0, reserve1);
+        (reserve0, reserve1) = INaughtyPair(pairAddress).getReserves();
     }
 
     /**
@@ -115,5 +113,12 @@ library NaughtyLibrary {
         require(reserveA > 0 && reserveB > 0, "insufficient liquidity");
 
         amountB = (amountA * reserveB) / reserveA;
+    }
+
+    function checkStablecoin(address policyCore, address _coinAddress)
+        public
+        returns (bool)
+    {
+        return IPolicyCore(policyCore).isStablecoinAddress(_coinAddress);
     }
 }

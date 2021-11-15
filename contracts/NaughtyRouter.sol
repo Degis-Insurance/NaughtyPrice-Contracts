@@ -8,19 +8,23 @@ import "./libraries/NaughtyLibrary.sol";
 
 import "./interfaces/IPolicyToken.sol";
 
+/**
+ * @title NaughtyRouter
+
+ */
 contract NaughtyRouter {
     using SafeERC20 for IERC20;
     using SafeERC20 for INaughtyPair;
 
+    // Some other contracts
     address public factory;
+    address public policyCore;
 
     address public owner;
-    address public USDT;
 
     mapping(address => mapping(uint256 => uint256)) userQuota;
 
-    constructor(address _usdt, address _factory) {
-        USDT = _usdt;
+    constructor(address _factory) {
         owner = msg.sender;
         factory = _factory;
     }
@@ -28,6 +32,15 @@ contract NaughtyRouter {
     modifier beforeDeadline(uint256 _deadLine) {
         require(block.timestamp < _deadLine, "expired transaction");
         _;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the owner can call this function");
+        _;
+    }
+
+    function setPolicyCore(address _coreAddress) public onlyOwner {
+        policyCore = _coreAddress;
     }
 
     /**
@@ -109,8 +122,13 @@ contract NaughtyRouter {
     }
 
     /**
-     * @notice 指定换出的token数量
-     * @param _amountInMax: zz
+     * @notice Amount out is fixed
+     * @param _amountInMax: Maximum token input
+     * @param _amountOut: Fixed token output
+     * @param _tokenIn: Address of input token
+     * @param _tokenOut: Address of output token
+     * @param _to: Swapper address
+     * @param _deadline: Deadline for this specific swap
      */
     function swapTokensforExactTokens(
         uint256 _amountInMax,
@@ -143,16 +161,24 @@ contract NaughtyRouter {
 
         IERC20(_tokenIn).safeTransferFrom(msg.sender, pair, amounts);
 
-        uint256 amount0Out = (_tokenIn == USDT) ? _amountOut : 0;
-        uint256 amount1Out = (_tokenIn == USDT) ? 0 : _amountOut;
+        bool isStablecoin = NaughtyLibrary.checkStablecoin(
+            policyCore,
+            _tokenIn
+        );
+        uint256 amount0Out = isStablecoin ? amounts : 0;
+        uint256 amount1Out = isStablecoin ? 0 : amounts;
 
         INaughtyPair(pair).swap(amount0Out, amount1Out, _to);
     }
 
     /**
-     * @notice 指定输入的token数量
-     * @param _amountIn: The exact amount of the tokens put in
-     * @param _amountOutMin: Minimum amount of tokens out, if not reach then revert
+     * @notice Amount in is fixed
+     * @param _amountIn: Fixed token input
+     * @param _amountOutMin: Minimum token output
+     * @param _tokenIn: Address of input token
+     * @param _tokenOut: Address of output token
+     * @param _to: Swapper address
+     * @param _deadline: Deadline for this specific swap
      */
     function swapExactTokensforTokens(
         uint256 _amountIn,
@@ -185,8 +211,14 @@ contract NaughtyRouter {
 
         IERC20(_tokenIn).safeTransferFrom(msg.sender, pair, _amountIn);
 
-        uint256 amount0Out = (_tokenIn == USDT) ? amounts : 0;
-        uint256 amount1Out = (_tokenIn == USDT) ? 0 : amounts;
+        // Check if the tokenIn is stablecoin
+        bool isStablecoin = NaughtyLibrary.checkStablecoin(
+            policyCore,
+            _tokenIn
+        );
+
+        uint256 amount0Out = isStablecoin ? amounts : 0;
+        uint256 amount1Out = isStablecoin ? 0 : amounts;
 
         INaughtyPair(pair).swap(amount0Out, amount1Out, _to);
     }
@@ -202,7 +234,8 @@ contract NaughtyRouter {
         uint256 _amountAMin,
         uint256 _amountBMin
     ) private returns (uint256 amountA, uint256 amountB) {
-        require(_tokenB == USDT, "please put usdt as tokenB parameter");
+        bool isStablecoin = NaughtyLibrary.checkStablecoin(policyCore, _tokenB);
+        require(isStablecoin, "please put stablecoin as tokenB parameter");
 
         (uint256 reserveA, uint256 reserveB) = NaughtyLibrary.getReserves(
             factory,

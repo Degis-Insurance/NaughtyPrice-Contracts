@@ -2,6 +2,8 @@
 pragma solidity 0.8.9;
 
 interface INaughtyRouter {
+    function setPolicyCore(address _coreAddress) external;
+
     /**
      * @notice Add liquidity
      */

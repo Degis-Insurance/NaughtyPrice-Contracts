@@ -16,8 +16,8 @@ import "@openzeppelin/contracts/utils/Strings.sol";
  * @dev Factory contract to deploy new pools periodically
  *      Each pool(product) will have a unique naughtyId
  *      Each pool will have its pool token
- *      InsuranceToken - USDT
- *      Token 0 may change but Token 1 is always USDT.
+ *      PolicyToken - Stablecoin
+ *      Token 0 may change but Token 1 is always stablecoin.
  */
 
 contract NaughtyFactory is INaughtyFactory {
@@ -29,19 +29,11 @@ contract NaughtyFactory is INaughtyFactory {
     address[] allPairs;
     address[] allTokens;
 
-    address public feeTo;
-    address public feeToSetter;
-
     uint256 public _nextId;
-
-    address public USDT;
 
     address public policyCore;
 
-    constructor(address _feeToSetter, address _USDT) {
-        feeToSetter = _feeToSetter;
-        USDT = _USDT;
-    }
+    constructor() {}
 
     /**
      * @notice Next token to be deployed
@@ -84,7 +76,7 @@ contract NaughtyFactory is INaughtyFactory {
 
     /**
      * @notice After deploy the policytoken and get the address,
-     *         we deploy the IT-USDT pool contract
+     *         we deploy the policyToken - stablecoin pool contract
      * @param _policyTokenAddress: Address of policy token
      * @param _stablecoin: Address of the stable coin
      * @return Address of the pool
@@ -153,22 +145,6 @@ contract NaughtyFactory is INaughtyFactory {
                 revert(0, 0)
             }
         }
-    }
-
-    /**
-     * @notice Set the "feeTo" account, only called by the "feeToSetter"
-     */
-    function setFeeTo(address _feeTo) external {
-        require(msg.sender == feeToSetter, "only feetosetter can call");
-        feeTo = _feeTo;
-    }
-
-    /**
-     * @notice Set the new "feeToSetter" account, only called by the old "feeToSetter"
-     */
-    function setFeeToSetter(address _feeToSetter) external {
-        require(msg.sender == feeToSetter, "only feetosetter can call");
-        feeToSetter = _feeToSetter;
     }
 
     /**
