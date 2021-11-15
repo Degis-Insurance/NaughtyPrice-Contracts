@@ -30,6 +30,10 @@ contract NaughtyProxy {
         policyCore = _newPolicyCore;
     }
 
+    function setNaughtyRouter(address _newRouter) external onlyOwner {
+        naughtyRouter = _newRouter;
+    }
+
     function deposit(
         string memory _policyTokenName,
         address _stablecoin,
