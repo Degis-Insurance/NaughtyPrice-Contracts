@@ -1,5 +1,4 @@
-const avax301 = "0xB489eBF43f10902F1A7Db2BEB5De4B7e82983057";
-const pairAddress = "0xCb417b5831D4D2a3818c7aEce27d6a8F624d4750";
+const tokenName = "BTC100L202101";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -17,19 +16,28 @@ module.exports = async (callback) => {
     const core = await PolicyCore.deployed();
     console.log(core.address);
 
+    console.log(usdt.address);
+
+    const balance = await usdt.balanceOf(mainAccount);
+    console.log("user balance:", parseInt(balance) / 1e18);
+
     await usdt.approve(core.address, web3.utils.toWei("100", "ether"), {
       from: mainAccount,
     });
 
+    // 抵押100usd  铸造100 policy token
     const deposit_tx = await core.deposit(
-      avax301,
+      tokenName,
+      usdt.address,
       web3.utils.toWei("100", "ether"),
       { from: mainAccount }
     );
     console.log(deposit_tx.tx);
 
+    // 取回20usd
     const redeem_tx = await core.redeem(
-      avax301,
+      tokenName,
+      usdt.address,
       web3.utils.toWei("20", "ether"),
       { from: mainAccount }
     );

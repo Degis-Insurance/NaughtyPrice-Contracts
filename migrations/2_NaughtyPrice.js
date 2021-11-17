@@ -4,6 +4,7 @@ const NaughtyRouter = artifacts.require("NaughtyRouter");
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyLibrary = artifacts.require("NaughtyLibrary");
 const PriceGetter = artifacts.require("PriceGetter");
+const NaughtyProxy = artifacts.require("NaughtyProxy");
 
 /**
  * @dev Deploy: USDT(for test, mainnet will have a fixed address)
@@ -30,4 +31,10 @@ module.exports = async function (deployer) {
     NaughtyRouter.address,
     PriceGetter.address
   );
+
+  // await deployer.deploy(
+  //   NaughtyProxy,
+  //   PolicyCore.address,
+  //   NaughtyRouter.address
+  // );
 };

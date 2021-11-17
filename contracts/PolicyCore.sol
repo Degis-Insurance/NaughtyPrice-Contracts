@@ -41,14 +41,16 @@ contract PolicyCore is IPolicyCore {
 
     struct PolicyTokenInfo {
         address policyTokenAddress;
+        bool _isHigher;
+        uint256 strikePrice;
         uint256 deadline;
         uint256 settleTimestamp;
     }
     mapping(string => PolicyTokenInfo) policyTokenInfoMapping; // Name => Information
 
-    mapping(address => bool) stablecoin;
+    mapping(address => bool) stablecoin; // Stablecoin address => support or not
 
-    mapping(address => address) whichStablecoin;
+    mapping(address => address) whichStablecoin; // Policy token address => stable coin address
 
     mapping(address => address) policyTokenToOriginal; // PolicyToken => Token (e.g. AVAX30L202101 address => AVAX address)
 
@@ -107,6 +109,7 @@ contract PolicyCore is IPolicyCore {
         _;
     }
 
+    /// @notice Deposit/Redeem/Swap only before deadline
     modifier beforeDeadline(string memory _policyTokenName) {
         uint256 deadline = policyTokenInfoMapping[_policyTokenName].deadline;
         require(
@@ -116,6 +119,7 @@ contract PolicyCore is IPolicyCore {
         _;
     }
 
+    /// @notice Settle the result after the "_settleTimestamp"
     modifier afterSettlement(string memory _policyTokenName) {
         uint256 settleTimestamp = policyTokenInfoMapping[_policyTokenName]
             .settleTimestamp;
@@ -132,11 +136,24 @@ contract PolicyCore is IPolicyCore {
      * @return PolicyToken address
      */
     function findAddressbyName(string memory _policyTokenName)
-        public
+        external
         view
         returns (address)
     {
         return policyTokenInfoMapping[_policyTokenName].policyTokenAddress;
+    }
+
+    /**
+     * @notice Find the token information by its name
+     * @param _policyTokenName: The name of policy token (e.g. "AVAX30-202103")
+     * @return PolicyToken detail information
+     */
+    function getPolicyTokenInfo(string memory _policyTokenName)
+        external
+        view
+        returns (PolicyTokenInfo memory)
+    {
+        return policyTokenInfoMapping[_policyTokenName];
     }
 
     /**
@@ -155,6 +172,9 @@ contract PolicyCore is IPolicyCore {
     function deployPolicyToken(
         string memory _policyTokenName,
         address _tokenAddress,
+        bool _isHigher,
+        uint256 _strikePrice,
+        uint256 _deadline,
         uint256 _settleTimestamp
     ) public returns (address) {
         address policyTokenAddress = INaughtyFactory(factory).deployPolicyToken(
@@ -164,7 +184,9 @@ contract PolicyCore is IPolicyCore {
         // Store the address in the mapping
         policyTokenInfoMapping[_policyTokenName] = PolicyTokenInfo(
             policyTokenAddress,
-            0,
+            _isHigher,
+            _strikePrice,
+            _deadline,
             _settleTimestamp
         );
 

@@ -34,6 +34,49 @@ contract NaughtyProxy {
         naughtyRouter = _newRouter;
     }
 
+    /**
+     * @notice Deploy a new policy token
+     * @param _policyTokenName: Policy token name "AVAX30L202101"
+     * @param _tokenAddress: Original token address (e.g. AVAX)
+     * @param _isHigher: "L" or "H". L: Pay out when lower than
+     * @param _strikePrice: Used for oracle settlement
+     * @param _deadline: Deadline for deposit/redeem/swap
+     * @param _settleTimestamp: After this time, can call oracle to settle the final result
+     */
+    function deployPolicyToken(
+        string memory _policyTokenName,
+        address _tokenAddress,
+        bool _isHigher,
+        uint256 _strikePrice,
+        uint256 _deadline,
+        uint256 _settleTimestamp
+    ) external returns (address policyTokenAddress) {
+        policyTokenAddress = IPolicyCore(policyCore).deployPolicyToken(
+            _policyTokenName,
+            _tokenAddress,
+            _isHigher,
+            _strikePrice,
+            _deadline,
+            _settleTimestamp
+        );
+    }
+
+    /**
+     * @notice Depoly a new pool with policy token and stable coin
+     * @param _policyTokenName: Policy toke name "AVAX30L202101"
+     */
+    function deployPool(
+        string memory _policyTokenName,
+        address _stablecoin,
+        uint256 _poolDeadline
+    ) external returns (address poolAddress) {
+        poolAddress = IPolicyCore(policyCore).deployPool(
+            _policyTokenName,
+            _stablecoin,
+            _poolDeadline
+        );
+    }
+
     function deposit(
         string memory _policyTokenName,
         address _stablecoin,

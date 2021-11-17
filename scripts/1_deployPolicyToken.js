@@ -1,36 +1,52 @@
+const tokenName = "BTC100L202101";
+
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyFactory = artifacts.require("NaughtyFactory");
-const USDT = artifacts.require("USDT");
 
-const fs = require("fs");
+const testAddress = "0x32eB34d060c12aD0491d260c436d30e5fB13a8Cd";
 
 module.exports = async (callback) => {
   try {
     const accounts = await web3.eth.getAccounts();
     const mainAccount = accounts[0];
-
     console.log("main account:", mainAccount);
-    const policyCore = await PolicyCore.deployed();
 
-    console.log("policyCore address:", policyCore.address);
+    const core = await PolicyCore.deployed();
+    console.log("policyCore address:", core.address);
 
     const factory = await NaughtyFactory.deployed();
-    const usdt = await factory.USDT.call();
-    console.log("usdt in factory:", usdt);
 
-    await factory.setPolicyCoreAddress(policyCore.address, {
+    await factory.setPolicyCoreAddress(core.address, {
       from: mainAccount,
     });
 
-    const policyTokenAddress = await policyCore.deployPolicyToken(
-      "AVAX30-202101",
-      { from: mainAccount }
+    let now = new Date().getTime();
+    now = parseInt(now / 1000);
+    console.log("now timestamp:", now);
+
+    const policyTokenAddress = await core.deployPolicyToken(
+      tokenName,
+      testAddress,
+      false,
+      web3.utils.toWei("30", "ether"),
+      now + 3000,
+      now + 3600,
+      {
+        from: mainAccount,
+      }
     );
 
-    console.log(policyTokenAddress);
+    console.log("new deployed policy token:", policyTokenAddress);
 
-    const ad = await policyCore.findAddressbyName("AVAX30-202101");
-    console.log("policy token address:", ad);
+    const ad = await core.findAddressbyName(tokenName, {
+      from: mainAccount,
+    });
+    console.log("policy token address in core:", ad);
+
+    const info = await core.getPolicyTokenInfo(tokenName, {
+      from: mainAccount,
+    });
+    console.log("policy token info:", info);
 
     callback(true);
   } catch (err) {

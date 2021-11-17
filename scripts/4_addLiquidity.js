@@ -1,5 +1,5 @@
-const avax301 = "0xB489eBF43f10902F1A7Db2BEB5De4B7e82983057";
-const pairAddress = "0xCb417b5831D4D2a3818c7aEce27d6a8F624d4750";
+const tokenAddress = "0xaA723736738cabA6c1B4DF30325785D1D7805017";
+const pairAddress = "0x4fd9E48afE3D0dfe4914E4a5f625bEb0d5F207fa";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -23,30 +23,40 @@ module.exports = async (callback) => {
     const router = await NaughtyRouter.deployed();
     console.log("router address", router.address);
 
-    const policy = await PolicyToken.at(avax301);
+    const policy = await PolicyToken.at(tokenAddress);
 
-    await policy.approve(router.address, web3.utils.toWei("20", "ether"), {
+    // 添加20-20的流动性
+    await policy.approve(router.address, web3.utils.toWei("40", "ether"), {
       from: mainAccount,
     });
 
-    await usdt.approve(router.address, web3.utils.toWei("20", "ether"), {
+    await usdt.approve(router.address, web3.utils.toWei("40", "ether"), {
       from: mainAccount,
     });
 
     let date = new Date().getTime();
+    date = parseInt(date / 1000);
+    console.log("now:", date);
+
+    await router.setPolicyCore(core.address, { from: mainAccount });
+
     const tx = await router.addLiquidity(
-      avax301,
+      tokenAddress,
       usdt.address,
-      web3.utils.toWei("20", "ether"),
-      web3.utils.toWei("20", "ether"),
+      web3.utils.toWei("40", "ether"),
+      web3.utils.toWei("40", "ether"),
       web3.utils.toWei("10", "ether"),
       web3.utils.toWei("10", "ether"),
       mainAccount,
       date + 6000,
       { from: mainAccount }
     );
-
     console.log(tx.tx);
+
+    const pair = await NaughtyPair.at(pairAddress);
+    const tx2 = await pair.getReserves();
+
+    console.log(parseInt(tx2[0]) / 1e18, parseInt(tx2[1] / 1e18));
 
     callback(true);
   } catch (err) {

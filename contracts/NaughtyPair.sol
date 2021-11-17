@@ -181,7 +181,6 @@ contract NaughtyPair is PoolLPToken {
         require(amount0In > 0 || amount1In > 0, "INSUFFICIENT_INPUT_AMOUNT");
 
         {
-            // scope for reserve{0,1}Adjusted, avoids stack too deep errors
             uint256 balance0Adjusted = balance0 * 1000 - amount0In * 3;
             uint256 balance1Adjusted = balance1 * 1000 - amount1In * 3;
             require(
@@ -211,6 +210,13 @@ contract NaughtyPair is PoolLPToken {
         reserve1 = uint112(balance1);
 
         emit ReserveUpdated(reserve0, reserve1);
+    }
+
+    function sync() external lock {
+        _update(
+            IERC20(token0).balanceOf(address(this)),
+            IERC20(token1).balanceOf(address(this))
+        );
     }
 
     /// @notice Return the smaller one in x and y

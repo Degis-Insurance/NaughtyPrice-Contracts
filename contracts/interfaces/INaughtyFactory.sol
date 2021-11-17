@@ -4,6 +4,7 @@ pragma solidity 0.8.9;
 interface INaughtyFactory {
     function getPairAddress(address _tokenAddress1, address _tokenAddress2)
         external
+        view
         returns (address);
 
     function deployPolicyToken(string memory _policyTokenName)

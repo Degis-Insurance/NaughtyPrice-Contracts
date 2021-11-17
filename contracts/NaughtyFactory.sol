@@ -52,6 +52,7 @@ contract NaughtyFactory is INaughtyFactory {
      */
     function getPairAddress(address _tokenAddress1, address _tokenAddress2)
         public
+        view
         returns (address)
     {
         // Policy token address at the first place
@@ -86,6 +87,11 @@ contract NaughtyFactory is INaughtyFactory {
         address _stablecoin,
         uint256 _deadline
     ) public returns (address) {
+        require(
+            IPolicyCore(policyCore).isStablecoinAddress(_stablecoin) == true,
+            "You give the wrong order of policyToken and stablecoin"
+        );
+
         bytes memory bytecode = type(NaughtyPair).creationCode;
 
         bytes32 salt = keccak256(

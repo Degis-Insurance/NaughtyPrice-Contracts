@@ -1,5 +1,5 @@
-const avax301 = "0xB489eBF43f10902F1A7Db2BEB5De4B7e82983057";
-const pairAddress = "0xCb417b5831D4D2a3818c7aEce27d6a8F624d4750";
+const tokenAddress = "0xaA723736738cabA6c1B4DF30325785D1D7805017";
+const pairAddress = "0x4fd9E48afE3D0dfe4914E4a5f625bEb0d5F207fa";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -23,7 +23,7 @@ module.exports = async (callback) => {
     const router = await NaughtyRouter.deployed();
     console.log("router address", router.address);
 
-    const policy = await PolicyToken.at(avax301);
+    const policy = await PolicyToken.at(tokenAddress);
 
     const usdt_before = await usdt.balanceOf(mainAccount, {
       from: mainAccount,
@@ -36,16 +36,28 @@ module.exports = async (callback) => {
     console.log("policy_before:", parseInt(policy_before) / 1e18);
 
     let date = new Date().getTime();
+    date = parseInt(date / 1000);
 
-    await policy.approve(router.address, web3.utils.toWei("21", "ether"), {
+    await policy.approve(router.address, web3.utils.toWei("20000", "ether"), {
       from: mainAccount,
     });
 
+    await usdt.approve(router.address, web3.utils.toWei("20000", "ether"), {
+      from: mainAccount,
+    });
+
+    const pair = await NaughtyPair.at(pairAddress);
+    const tx1 = await pair.getReserves();
+
+    console.log(parseInt(tx1[0]) / 1e18, parseInt(tx1[1]) / 1e18);
+
+    await pair.sync({ from: mainAccount });
+
     // 用最多21个policy token 换10个usdt出来
     const tx = await router.swapTokensforExactTokens(
-      web3.utils.toWei("21", "ether"),
+      web3.utils.toWei("20", "ether"),
       web3.utils.toWei("10", "ether"),
-      avax301,
+      tokenAddress,
       usdt.address,
       mainAccount,
       date + 6000,
@@ -60,8 +72,12 @@ module.exports = async (callback) => {
       from: mainAccount,
     });
 
-    console.log("usdt balance before:", parseInt(usdt_after) / 1e18);
-    console.log("policy_before:", parseInt(policy_after) / 1e18);
+    console.log("usdt balance after:", parseInt(usdt_after) / 1e18);
+    console.log("policy after:", parseInt(policy_after) / 1e18);
+
+    const tx2 = await pair.getReserves();
+
+    console.log(parseInt(tx2[0]) / 1e18, parseInt(tx2[1]) / 1e18);
 
     callback(true);
   } catch (err) {

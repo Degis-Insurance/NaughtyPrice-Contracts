@@ -14,7 +14,7 @@ library NaughtyLibrary {
         uint256 _amountIn,
         address _tokenIn,
         address _tokenOut
-    ) internal returns (uint256 amounts) {
+    ) internal view returns (uint256 amounts) {
         (uint256 reserveIn, uint256 reserveOut) = getReserves(
             factory,
             _tokenIn,
@@ -31,7 +31,7 @@ library NaughtyLibrary {
         uint256 _amountOut,
         address _tokenIn,
         address _tokenOut
-    ) internal returns (uint256 amounts) {
+    ) internal view returns (uint256 amounts) {
         (uint256 reserveIn, uint256 reserveOut) = getReserves(
             factory,
             _tokenIn,
@@ -75,7 +75,7 @@ library NaughtyLibrary {
         address factory,
         address tokenA,
         address tokenB
-    ) public returns (uint112 reserve0, uint112 reserve1) {
+    ) public view returns (uint112 reserve0, uint112 reserve1) {
         address pairAddress = INaughtyFactory(factory).getPairAddress(
             tokenA,
             tokenB
@@ -94,7 +94,7 @@ library NaughtyLibrary {
         address factory,
         address tokenA,
         address tokenB
-    ) external returns (address) {
+    ) external view returns (address) {
         address pairAddress = INaughtyFactory(factory).getPairAddress(
             tokenA,
             tokenB
@@ -117,6 +117,7 @@ library NaughtyLibrary {
 
     function checkStablecoin(address policyCore, address _coinAddress)
         public
+        view
         returns (bool)
     {
         return IPolicyCore(policyCore).isStablecoinAddress(_coinAddress);

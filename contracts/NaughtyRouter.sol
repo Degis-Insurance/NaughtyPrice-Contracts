@@ -150,6 +150,7 @@ contract NaughtyRouter {
             "This pool has been frozen for swapping"
         );
 
+        // Get how many tokens should be put in
         amounts = NaughtyLibrary.getAmountsIn(
             factory,
             _amountOut,
@@ -157,16 +158,17 @@ contract NaughtyRouter {
             _tokenOut
         );
 
-        require(amounts <= _amountInMax, "excessive output amount");
+        require(amounts <= _amountInMax, "excessive input amount");
 
         IERC20(_tokenIn).safeTransferFrom(msg.sender, pair, amounts);
 
+        // If tokenIn is usd then amount0Out = amountOut
         bool isStablecoin = NaughtyLibrary.checkStablecoin(
             policyCore,
             _tokenIn
         );
-        uint256 amount0Out = isStablecoin ? amounts : 0;
-        uint256 amount1Out = isStablecoin ? 0 : amounts;
+        uint256 amount0Out = isStablecoin ? _amountOut : 0;
+        uint256 amount1Out = isStablecoin ? 0 : _amountOut;
 
         INaughtyPair(pair).swap(amount0Out, amount1Out, _to);
     }
@@ -233,7 +235,7 @@ contract NaughtyRouter {
         uint256 _amountBDesired,
         uint256 _amountAMin,
         uint256 _amountBMin
-    ) private returns (uint256 amountA, uint256 amountB) {
+    ) private view returns (uint256 amountA, uint256 amountB) {
         bool isStablecoin = NaughtyLibrary.checkStablecoin(policyCore, _tokenB);
         require(isStablecoin, "please put stablecoin as tokenB parameter");
 
@@ -259,7 +261,7 @@ contract NaughtyRouter {
                     reserveB,
                     reserveA
                 );
-                assert(amountAOptimal <= _amountADesired);
+                require(amountAOptimal <= _amountADesired, "nonono");
                 require(amountAOptimal >= _amountAMin, "INSUFFICIENT_A_AMOUNT");
                 (amountA, amountB) = (amountAOptimal, _amountBDesired);
             }
