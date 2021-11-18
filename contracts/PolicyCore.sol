@@ -41,7 +41,7 @@ contract PolicyCore is IPolicyCore {
 
     struct PolicyTokenInfo {
         address policyTokenAddress;
-        bool _isHigher;
+        bool isHigher;
         uint256 strikePrice;
         uint256 deadline;
         uint256 settleTimestamp;
@@ -59,6 +59,7 @@ contract PolicyCore is IPolicyCore {
     mapping(address => address[]) public allDepositors;
 
     mapping(address => int256) priceResult; // PolicyToken address => Price result
+    mapping(address => bool) settleResult; // PolicyToken address => Claim or Expire
 
     /**
      * @notice Constructor, for some addresses
@@ -132,7 +133,7 @@ contract PolicyCore is IPolicyCore {
 
     /**
      * @notice Find the token address by its name
-     * @param _policyTokenName: The name of policy token (e.g. "AVAX30-202103")
+     * @param _policyTokenName: The name of policy token (e.g. "AVAX30L202103")
      * @return PolicyToken address
      */
     function findAddressbyName(string memory _policyTokenName)
@@ -145,7 +146,7 @@ contract PolicyCore is IPolicyCore {
 
     /**
      * @notice Find the token information by its name
-     * @param _policyTokenName: The name of policy token (e.g. "AVAX30-202103")
+     * @param _policyTokenName: The name of policy token (e.g. "AVAX30L202103")
      * @return PolicyToken detail information
      */
     function getPolicyTokenInfo(string memory _policyTokenName)
@@ -165,9 +166,13 @@ contract PolicyCore is IPolicyCore {
 
     /**
      * @notice Deploy a new policy token and get the token address
-     * @param _policyTokenName: Token name of policy token (e.g. "AVAX30L202101")
-     * @param _tokenAddress: Address of the original token (e.g. AVAX, BTC, ETH...)
-     * @return The address of the policy token just deployed
+     * @param _policyTokenName Token name of policy token (e.g. "AVAX30L202101")
+     * @param _tokenAddress Address of the original token (e.g. AVAX, BTC, ETH...)
+     * @param _isHigher The policy is for higher than strike price or lower than
+     * @param _strikePrice Strike price
+     * @param _deadline Deadline of this policy token
+     * @param _settleTimestamp Can settle after this timestamp
+     * @return policyTokenAddress The address of the policy token just deployed
      */
     function deployPolicyToken(
         string memory _policyTokenName,
@@ -315,10 +320,59 @@ contract PolicyCore is IPolicyCore {
         int256 price = IPriceGetter(pricegetter).getLatestPrice(
             _policyTokenName
         );
-
         priceResult[policyTokenAddress] = price;
 
+        uint256 strike = policyTokenInfoMapping[_policyTokenName].strikePrice;
+        bool isHigher = policyTokenInfoMapping[_policyTokenName].isHigher;
+
+        bool situationT1 = (uint256(price) >= strike) && isHigher;
+        bool situationT2 = (uint256(price) <= strike) && !isHigher;
+
+        if (situationT1 || situationT2) {
+            settleResult[policyTokenAddress] = true;
+        } else {
+            settleResult[policyTokenAddress] = false;
+        }
+
         emit SettleFinalResult(_policyTokenName, price);
+    }
+
+    /**
+     * @notice Settle the policies when then insurance event do not happen
+     *         Funds are automatically distributed back to the depositors
+     * @dev    Not recommended to use this function for the gas cost
+     * @param _policyTokenAddress: Address of policy token
+     * @param _stablecoin: Address of stablecoin
+     * @param _startIndex: Settlement start index
+     * @param _stopIndex: Settlement stop index
+     */
+    function settlePolicyToken(
+        address _policyTokenAddress,
+        address _stablecoin,
+        uint256 _startIndex,
+        uint256 _stopIndex
+    ) public onlyOwner {
+        require(
+            priceResult[_policyTokenAddress] != 0,
+            "Have not got the oracle result"
+        );
+
+        require(
+            settleResult[_policyTokenAddress] == false,
+            "The oracle result is not correct"
+        );
+
+        if (_startIndex == 0 && _stopIndex == 0) {
+            uint256 length = allDepositors[_policyTokenAddress].length;
+            _settlePolicy(_policyTokenAddress, _stablecoin, 0, length);
+        } else {
+            _settlePolicy(
+                _policyTokenAddress,
+                _stablecoin,
+                _startIndex,
+                _stopIndex
+            );
+        }
     }
 
     /**
@@ -391,26 +445,27 @@ contract PolicyCore is IPolicyCore {
     }
 
     /**
-     * @notice Settle the policies when then insurance event do not happen
-     *         Funds are automatically distributed back to the depositors
-     * @dev    Not recommended to use this function for the gas cost
+     * @notice Settle the policy
+     * @param _policyTokenAddress: Address of policy token
+     * @param _stablecoin: Address of stable coin
+     * @param _start: Start index
+     * @param _stop: Stop index
      */
-    function settlePolicyToken(address _policyTokenAddress, address _stablecoin)
-        public
-        onlyOwner
-    {
-        require(
-            priceResult[_policyTokenAddress] != 0,
-            "have not got the oracle result"
-        );
-
-        uint256 length = allDepositors[_policyTokenAddress].length;
-
-        for (uint256 i = 0; i < length; i++) {
+    function _settlePolicy(
+        address _policyTokenAddress,
+        address _stablecoin,
+        uint256 _start,
+        uint256 _stop
+    ) internal {
+        for (uint256 i = _start; i < _stop; i++) {
             address user = allDepositors[_policyTokenAddress][i];
             uint256 amount = userQuota[user][_policyTokenAddress];
 
             IERC20(_stablecoin).safeTransfer(user, amount);
+
+            // userQuota[user][_policyTokenAddress] -= amount;
+            // if (userQuota[user][_policyTokenAddress] == 0)
+            delete userQuota[user][_policyTokenAddress];
         }
     }
 

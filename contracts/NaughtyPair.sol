@@ -24,10 +24,6 @@ contract NaughtyPair is PoolLPToken {
 
     uint256 public constant MINIMUM_LIQUIDITY = 10**3; // minimum liquidity locked
 
-    // uint256 public totalSupply; // Total supply of LP Tokens
-
-    // event Mint(address indexed sender, uint256 amount0, uint256 amount1);
-    // event Burn(address indexed sender, uint256 amount0, uint256 amount1);
     event ReserveUpdated(uint256 reserve0, uint256 reserve1);
     event Swap(
         address indexed sender,
@@ -54,6 +50,9 @@ contract NaughtyPair is PoolLPToken {
 
     /**
      * @notice Initialize the contract status after the deployment by factory
+     * @param _token0 Token0 address
+     * @param _token1 Token1 address
+     * @param _deadline Deadline for this pool
      */
     function initialize(
         address _token0,
@@ -71,7 +70,9 @@ contract NaughtyPair is PoolLPToken {
     }
 
     /**
-     * @notice Get reserve0 (Policy token) and reserve1 (stablecoin)
+     * @notice Get reserve0 (Policy token) and reserve1 (stablecoin).
+     * @return _reserve0 Reserve of token0
+     * @return _reserve1 Reserve of token1
      */
     function getReserves()
         public
@@ -85,6 +86,8 @@ contract NaughtyPair is PoolLPToken {
     /**
      * @notice Mint LP Token to liquidity providers
      *         Called when adding liquidity.
+     * @param to The user address
+     * @return liquidity The LP token number
      */
     function mint(address to) external returns (uint256 liquidity) {
         (uint112 _reserve0, uint112 _reserve1) = getReserves(); // gas savings
@@ -111,7 +114,12 @@ contract NaughtyPair is PoolLPToken {
         _update(balance0, balance1);
     }
 
-    /// @notice Burn LP tokens give back the original tokens
+    /**
+     * @notice Burn LP tokens give back the original tokens
+     * @param _to User address
+     * @return amount0 Amount of token0 to be sent back
+     * @return amount1 Amount of token1 to be sent back
+     */
     function burn(address _to)
         external
         lock
@@ -141,7 +149,12 @@ contract NaughtyPair is PoolLPToken {
         _update(balance0, balance1);
     }
 
-    // this low-level function should be called from a contract which performs important safety checks
+    /**
+     * @notice Finish the swap process
+     * @param _amount0Out Amount of token0 to be given out (may be 0)
+     * @param _amount1Out Amount of token1 to be given out (may be 0)
+     * @param _to Address to receive the swap result
+     */
     function swap(
         uint256 _amount0Out,
         uint256 _amount1Out,
@@ -201,7 +214,11 @@ contract NaughtyPair is PoolLPToken {
         );
     }
 
-    /// @notice Update reserves
+    /**
+     * @notice Update the reserves of the pool
+     * @param balance0 Balance of token0
+     * @param balance1 Balance of token1
+     */
     function _update(uint256 balance0, uint256 balance1) private {
         uint112 MAX_NUM = type(uint112).max;
         require(balance0 <= MAX_NUM && balance1 <= MAX_NUM, "uint112 OVERFLOW");
@@ -212,6 +229,9 @@ contract NaughtyPair is PoolLPToken {
         emit ReserveUpdated(reserve0, reserve1);
     }
 
+    /**
+     * @notice Syncrinize the status of this pool
+     */
     function sync() external lock {
         _update(
             IERC20(token0).balanceOf(address(this)),
@@ -219,7 +239,12 @@ contract NaughtyPair is PoolLPToken {
         );
     }
 
-    /// @notice Return the smaller one in x and y
+    /**
+     * @notice Get the smaller one of two numbers
+     * @param x The first number
+     * @param y The second number
+     * @return z The smaller one
+     */
     function min(uint256 x, uint256 y) internal pure returns (uint256 z) {
         z = x < y ? x : y;
     }

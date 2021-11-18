@@ -10,7 +10,7 @@ import "./interfaces/IPolicyToken.sol";
 
 /**
  * @title NaughtyRouter
-
+ * @notice Router for the pool, you can add/remove liquidity or swap A for B.
  */
 contract NaughtyRouter {
     using SafeERC20 for IERC20;
@@ -44,15 +44,18 @@ contract NaughtyRouter {
     }
 
     /**
-     * @notice Add liquidity
+     * @notice Add liquidity function
      * @param _token0: Address of policyToken
      * @param _token1: Address of USDT
      * @param _amountADesired: Amount of policyToken desired
      * @param _amountBDesired: Amount of USDT desired
-     * @param _amountAMin: Minimum amoutn of policyToken
-     * @param _amountBMin: Minimum amount of USDT
+     * @param _amountAMin: Minimum amoutn of policy token
+     * @param _amountBMin: Minimum amount of stablecoin
      * @param _to: Address that receive the lp token, normally the user himself
      * @param _deadline: Transaction will revert after this deadline
+     * @return amountA Amount of tokenA to be input
+     * @return amountB Amount of tokenB to be input
+     * @return liquidity LP token to be mint
      */
     function addLiquidity(
         address _token0,
@@ -93,9 +96,15 @@ contract NaughtyRouter {
 
     /**
      * @notice Remove liquidity from the pool
-     * @param _tokenA: Insurance token address
-     * @param _liquidity: The lptoken amount to be removed
-     * @param _amountAMin: Minimum
+     * @param _tokenA Address of tokenA
+     * @param _tokenB Address of tokenB
+     * @param _liquidity The lptoken amount to be removed
+     * @param _amountAMin Minimum amount of tokenA given out
+     * @param _amountBMin Minimum amount of tokenB given out
+     * @param _to User address
+     * @param _deadline Deadline of this transaction
+     * @return amount0 Amount of token0 given out
+     * @return amount1 Amount of token1 given out
      */
     function removeLiquidity(
         address _tokenA,
@@ -123,12 +132,13 @@ contract NaughtyRouter {
 
     /**
      * @notice Amount out is fixed
-     * @param _amountInMax: Maximum token input
-     * @param _amountOut: Fixed token output
-     * @param _tokenIn: Address of input token
-     * @param _tokenOut: Address of output token
-     * @param _to: Swapper address
-     * @param _deadline: Deadline for this specific swap
+     * @param _amountInMax Maximum token input
+     * @param _amountOut Fixed token output
+     * @param _tokenIn Address of input token
+     * @param _tokenOut Address of output token
+     * @param _to User address
+     * @param _deadline Deadline for this specific swap
+     * @return amounts Amounts to be really put in
      */
     function swapTokensforExactTokens(
         uint256 _amountInMax,
@@ -175,12 +185,13 @@ contract NaughtyRouter {
 
     /**
      * @notice Amount in is fixed
-     * @param _amountIn: Fixed token input
-     * @param _amountOutMin: Minimum token output
-     * @param _tokenIn: Address of input token
-     * @param _tokenOut: Address of output token
-     * @param _to: Swapper address
-     * @param _deadline: Deadline for this specific swap
+     * @param _amountIn Fixed token input
+     * @param _amountOutMin Minimum token output
+     * @param _tokenIn Address of input token
+     * @param _tokenOut Address of output token
+     * @param _to User address
+     * @param _deadline Deadline for this specific swap
+     * @return amounts Amounts to be really given out
      */
     function swapExactTokensforTokens(
         uint256 _amountIn,
@@ -226,7 +237,15 @@ contract NaughtyRouter {
     }
 
     /**
-     * @notice Add liquidity
+     * @notice Internal function to finish adding liquidity
+     * @param _tokenA Address of tokenA
+     * @param _tokenB Address of tokenB
+     * @param _amountADesired Amount of tokenA to be added
+     * @param _amountBDesired Amount of tokenB to be added
+     * @param _amountAMin Minimum amount of tokenA
+     * @param _amountBMin Minimum amount of tokenB
+     * @return amountA Real amount of tokenA
+     * @return amountB Real amount of tokenB
      */
     function _addLiquidity(
         address _tokenA,
@@ -270,10 +289,10 @@ contract NaughtyRouter {
 
     /**
      * @notice Finish the erc20 transfer operation
-     * @param _token: ERC20 token address
-     * @param _from: Address to give out the token
-     * @param _to: Pair address to receive the token
-     * @param _amount: Transfer amount
+     * @param _token ERC20 token address
+     * @param _from Address to give out the token
+     * @param _to Pair address to receive the token
+     * @param _amount Transfer amount
      */
     function transferHelper(
         address _token,
