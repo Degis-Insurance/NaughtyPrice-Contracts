@@ -9,6 +9,7 @@ import "./interfaces/INaughtyRouter.sol";
 import "./interfaces/INaughtyFactory.sol";
 import "./interfaces/IPriceGetter.sol";
 import "./interfaces/IPolicyCore.sol";
+import "./interfaces/IDegisToken.sol";
 
 /**
  * @title  PolicyCore
@@ -37,7 +38,11 @@ contract PolicyCore is IPolicyCore {
     address public router; // Router contract, responsible for pair swapping
     address public pricegetter;
 
+    address public degis;
+
     address public owner;
+
+    uint256 public purchaseIncentiveRatio;
 
     struct PolicyTokenInfo {
         address policyTokenAddress;
@@ -68,13 +73,15 @@ contract PolicyCore is IPolicyCore {
         address _usdt,
         address _factory,
         address _router,
-        address _pricegetter
+        address _pricegetter,
+        address _degis
     ) {
         stablecoin[_usdt] = true;
 
         factory = _factory;
         router = _router;
         pricegetter = _pricegetter;
+        degis = _degis;
 
         owner = msg.sender;
     }
@@ -162,6 +169,12 @@ contract PolicyCore is IPolicyCore {
      */
     function addStablecoin(address _newStablecoin) public onlyOwner {
         stablecoin[_newStablecoin] = true;
+        emit NewStablecoinAdded(_newStablecoin);
+    }
+
+    function setPurchaseIncentiveAmount(uint256 _newRatio) external onlyOwner {
+        purchaseIncentiveRatio = _newRatio;
+        emit PurchaseIncentiveRatioSet(_newRatio);
     }
 
     /**
@@ -291,14 +304,33 @@ contract PolicyCore is IPolicyCore {
     ) public afterSettlement(_policyTokenName) {
         address policyTokenAddress = policyTokenInfoMapping[_policyTokenName]
             .policyTokenAddress;
-
-        IPolicyToken policyToken = IPolicyToken(policyTokenAddress);
         require(
-            policyToken.balanceOf(msg.sender) >= _amount,
-            "You do not have sufficient policy tokens to claim"
+            priceResult[policyTokenAddress] != 0,
+            "Have not got the oracle result"
         );
 
-        _claimPolicyToken(policyTokenAddress, _stablecoin, _amount);
+        if (settleResult[policyTokenAddress] == true) {
+            IPolicyToken policyToken = IPolicyToken(policyTokenAddress);
+            require(
+                policyToken.balanceOf(msg.sender) >= _amount,
+                "You do not have sufficient policy tokens to claim"
+            );
+
+            _claimPolicyToken(policyTokenAddress, _stablecoin, _amount);
+        } else {
+            _claimPurchaseIncentive(policyTokenAddress, _amount);
+        }
+    }
+
+    function _claimPurchaseIncentive(
+        address _policyTokenAddress,
+        uint256 _amount
+    ) internal {
+        uint256 purchaseIncentiveAmount = _amount / purchaseIncentiveRatio;
+        IDegisToken(degis).mint(msg.sender, purchaseIncentiveAmount);
+
+        IPolicyToken policyToken = IPolicyToken(_policyTokenAddress);
+        policyToken.burn(msg.sender, _amount);
     }
 
     /**

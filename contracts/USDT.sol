@@ -9,4 +9,8 @@ contract USDT is ERC20("USDT", "USDT") {
     constructor() {
         _mint(msg.sender, initial_mint);
     }
+
+    function mint(uint256 _amount) public {
+        _mint(msg.sender, _amount);
+    }
 }
