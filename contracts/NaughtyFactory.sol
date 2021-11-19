@@ -178,6 +178,7 @@ contract NaughtyFactory is INaughtyFactory {
         bytes memory bytecode = type(PolicyToken).creationCode;
 
         // Encodepacked the parameters
+        // The owner & minter is set to be the policyCore address
         return
             abi.encodePacked(
                 bytecode,

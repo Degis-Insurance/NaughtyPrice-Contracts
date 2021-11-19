@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./interfaces/IPolicyToken.sol";
 
-contract PolicyToken is ERC20 {
+contract PolicyToken is ERC20, IPolicyToken {
     address public owner;
     address public minter;
 
@@ -12,6 +13,7 @@ contract PolicyToken is ERC20 {
         address _owner
     ) ERC20(_name, _symbol) {
         owner = _owner;
+        minter = _owner;
     }
 
     modifier onlyOwner() {
@@ -19,15 +21,22 @@ contract PolicyToken is ERC20 {
         _;
     }
 
-    function passMinterRole(address _newMinter) public onlyOwner {
-        minter = _newMinter;
+    modifier onlyMinter() {
+        require(msg.sender == minter, "only minter can call this function");
+        _;
     }
 
-    function mint(address _account, uint256 _amount) public onlyOwner {
+    function passMinterRole(address _newMinter) public onlyOwner {
+        address oldMinter = minter;
+        minter = _newMinter;
+        emit MinterRoleChanged(oldMinter, _newMinter);
+    }
+
+    function mint(address _account, uint256 _amount) public onlyMinter {
         _mint(_account, _amount);
     }
 
-    function burn(address _account, uint256 _amount) public onlyOwner {
+    function burn(address _account, uint256 _amount) public onlyMinter {
         _burn(_account, _amount);
     }
 }
