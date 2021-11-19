@@ -2,7 +2,11 @@
 pragma solidity 0.8.9;
 
 interface IPolicyCore {
-    event SettleFinalResult(string _policyTokenName, int256 price);
+    event SettleFinalResult(
+        string _policyTokenName,
+        int256 price,
+        bool isHappened
+    );
     event NewStablecoinAdded(address _newStablecoin);
     event PurchaseIncentiveRatioSet(uint256 _newRatio);
 

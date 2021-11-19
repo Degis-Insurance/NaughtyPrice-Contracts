@@ -63,11 +63,23 @@ contract PolicyCore is IPolicyCore {
 
     mapping(address => address[]) public allDepositors;
 
-    mapping(address => int256) priceResult; // PolicyToken address => Price result
-    mapping(address => bool) settleResult; // PolicyToken address => Claim or Expire
+    struct SettlementInfo {
+        int256 price;
+        bool isHappened;
+        bool alreadySettled;
+    }
+    mapping(address => SettlementInfo) settleResult;
+
+    // mapping(address => int256) priceResult; // PolicyToken address => Price result
+    // mapping(address => bool) settleResult; // PolicyToken address => Claim(true) or Expire(false)
 
     /**
      * @notice Constructor, for some addresses
+     * @param _usdt Stablecoin(first supported) in the pool (can be other stablecoins)
+     * @param _factory Address of naughty factory
+     * @param _router Address of naughty router
+     * @param _priceGetter Address of the oracle part
+     * @param _degis Address of degis token, used for purchaseIncentive
      */
     constructor(
         address _usdt,
@@ -90,7 +102,7 @@ contract PolicyCore is IPolicyCore {
      * @notice Only the owner can call some functions
      */
     modifier onlyOwner() {
-        require(msg.sender == owner, "only owner can call this function");
+        require(msg.sender == owner, "Only the  owner can call this function");
         _;
     }
 
@@ -107,17 +119,33 @@ contract PolicyCore is IPolicyCore {
     }
 
     /**
-     * @notice Check if there is enough stablecoins in the contract
+     * @notice Check if the policy token has been deployed, used when deploying pools
+     * @param _policyTokenName Name of the policy token inside the pair
      */
-    modifier enoughUSD(address _stablecoin, uint256 _amount) {
+    modifier deployedPolicy(string memory _policyTokenName) {
         require(
-            IERC20(_stablecoin).balanceOf(address(this)) >= _amount,
-            "not sufficient usdt in the contract"
+            policyTokenInfoMapping[_policyTokenName].policyTokenAddress !=
+                address(0),
+            "This policy token has not been deployed, please deploy it first"
         );
         _;
     }
 
-    /// @notice Deposit/Redeem/Swap only before deadline
+    /**
+     * @notice Check if there are enough stablecoins in this contract
+     */
+    modifier enoughUSD(address _stablecoin, uint256 _amount) {
+        require(
+            IERC20(_stablecoin).balanceOf(address(this)) >= _amount,
+            "Not sufficient stablecoins in the contract"
+        );
+        _;
+    }
+
+    /**
+     * @notice Deposit/Redeem/Swap only before deadline
+     * @dev Deadline for swap need to be set seperately
+     */
     modifier beforeDeadline(string memory _policyTokenName) {
         uint256 deadline = policyTokenInfoMapping[_policyTokenName].deadline;
         require(
@@ -127,13 +155,29 @@ contract PolicyCore is IPolicyCore {
         _;
     }
 
-    /// @notice Settle the result after the "_settleTimestamp"
+    /**
+     * @notice Can only settle the result after the "_settleTimestamp"
+     */
     modifier afterSettlement(string memory _policyTokenName) {
         uint256 settleTimestamp = policyTokenInfoMapping[_policyTokenName]
             .settleTimestamp;
         require(
             block.timestamp >= settleTimestamp,
             "Can not settle/claim, not reached settleTimestamp"
+        );
+        _;
+    }
+
+    /**
+     * @notice Avoid multiple settlement
+     * @param _policyTokenName Name of the policy token
+     */
+    modifier notAlreadySettled(string memory _policyTokenName) {
+        address policyTokenAddress = policyTokenInfoMapping[_policyTokenName];
+
+        require(
+            settleResult[policyTokenAddress].alreadySettled == false,
+            "This policy has already been settled"
         );
         _;
     }
@@ -165,26 +209,43 @@ contract PolicyCore is IPolicyCore {
     }
 
     /**
+     * @notice Check if this is a stablecoin address supported, used in factory
+     */
+    function isStablecoinAddress(address _coinAddress)
+        external
+        view
+        returns (bool)
+    {
+        return stablecoin[_coinAddress];
+    }
+
+    /**
      * @notice Add new supported stablecoin
      */
-    function addStablecoin(address _newStablecoin) public onlyOwner {
+    function addStablecoin(address _newStablecoin) external onlyOwner {
         stablecoin[_newStablecoin] = true;
         emit NewStablecoinAdded(_newStablecoin);
     }
 
+    /**
+     * @notice Change the purchase incentive amount
+     * @dev policyToken amount(not happened) / ratio = incentive amount (in DEG)
+     * @param _newRatio The amount is calculated by this ratio
+     */
     function setPurchaseIncentiveAmount(uint256 _newRatio) external onlyOwner {
         purchaseIncentiveRatio = _newRatio;
         emit PurchaseIncentiveRatioSet(_newRatio);
     }
 
     /**
-     * @notice Deploy a new policy token and get the token address
+     * @notice Deploy a new policy token and return the token address
+     * @dev Only the owner can deploy new policy token
      * @param _policyTokenName Token name of policy token (e.g. "AVAX30L202101")
      * @param _tokenAddress Address of the original token (e.g. AVAX, BTC, ETH...)
-     * @param _isHigher The policy is for higher than strike price or lower than
-     * @param _strikePrice Strike price
-     * @param _deadline Deadline of this policy token
-     * @param _settleTimestamp Can settle after this timestamp
+     * @param _isHigher The policy is for higher than strike price or lower than (call / put)
+     * @param _strikePrice Strike price of the policy
+     * @param _deadline Deadline of this policy token (deposit / redeem / swap)
+     * @param _settleTimestamp Can settle after this timestamp (for oracle)
      * @return policyTokenAddress The address of the policy token just deployed
      */
     function deployPolicyToken(
@@ -194,12 +255,12 @@ contract PolicyCore is IPolicyCore {
         uint256 _strikePrice,
         uint256 _deadline,
         uint256 _settleTimestamp
-    ) public returns (address) {
+    ) public onlyOwner returns (address) {
         address policyTokenAddress = INaughtyFactory(factory).deployPolicyToken(
             _policyTokenName
         );
 
-        // Store the address in the mapping
+        // Store the policyToken information in the mapping
         policyTokenInfoMapping[_policyTokenName] = PolicyTokenInfo(
             policyTokenAddress,
             _isHigher,
@@ -208,22 +269,30 @@ contract PolicyCore is IPolicyCore {
             _settleTimestamp
         );
 
+        // Keep the record from policy token to original token
         policyTokenToOriginal[policyTokenAddress] = _tokenAddress;
 
+        // You can not get the return value from outside, but keep it here.
         return policyTokenAddress;
     }
 
     /**
      * @notice Deploy a new pair (pool)
-     * @param _policyTokenName: Name of the policy token
-     * @param _stablecoin: Address of the stable coin
+     * @param _policyTokenName Name of the policy token
+     * @param _stablecoin Address of the stable coin
      * @return The address of the pool just deployed
      */
     function deployPool(
         string memory _policyTokenName,
         address _stablecoin,
         uint256 _poolDeadline
-    ) public supportedStablecoin(_stablecoin) returns (address) {
+    )
+        public
+        onlyOwner
+        supportedStablecoin(_stablecoin)
+        deployedPolicy(_policyTokenName)
+        returns (address)
+    {
         address policyTokenAddress = policyTokenInfoMapping[_policyTokenName]
             .policyTokenAddress;
 
@@ -239,10 +308,10 @@ contract PolicyCore is IPolicyCore {
     }
 
     /**
-     * @notice Deposit USDT and get policy tokens
-     * @param _policyTokenName: Name of the policy token
-     * @param _stablecoin: Address of the sable coin
-     * @param _amount: Amount of USDT (also the amount of policy tokens)
+     * @notice Deposit stablecoins and get policy tokens
+     * @param _policyTokenName Name of the policy token
+     * @param _stablecoin Address of the sable coin
+     * @param _amount Amount of USDT (also the amount of policy tokens)
      */
     function deposit(
         string memory _policyTokenName,
@@ -251,11 +320,14 @@ contract PolicyCore is IPolicyCore {
     ) public beforeDeadline(_policyTokenName) {
         address policyTokenAddress = policyTokenInfoMapping[_policyTokenName]
             .policyTokenAddress;
+
+        // Check if the user give the right stablecoin
         require(
             whichStablecoin[policyTokenAddress] == _stablecoin,
             "PolicyToken and stablecoin not matched"
         );
 
+        // Check if the user has enough balance
         require(
             IERC20(_stablecoin).balanceOf(msg.sender) >= _amount,
             "User's stablecoin balance not sufficient"
@@ -266,26 +338,23 @@ contract PolicyCore is IPolicyCore {
 
     /**
      * @notice Burn policy tokens and redeem USDT
-     * @param _policyTokenName: Name of the policy token
-     * @param _stablecoin: Address of the stablecoin
-     * @param _amount: Amount of USDT (also the amount of policy tokens)
+     * @dev Redeem happens before the deadline and is different from claim/settle
+     * @param _policyTokenName Name of the policy token
+     * @param _stablecoin Address of the stablecoin
+     * @param _amount Amount of USDT (also the amount of policy tokens)
      */
     function redeem(
         string memory _policyTokenName,
         address _stablecoin,
         uint256 _amount
     ) public enoughUSD(_stablecoin, _amount) beforeDeadline(_policyTokenName) {
-        uint256 deadline = policyTokenInfoMapping[_policyTokenName].deadline;
-        require(
-            block.timestamp <= deadline,
-            "Can not deposit, has passed the deadline"
-        );
-
         address policyTokenAddress = policyTokenInfoMapping[_policyTokenName]
             .policyTokenAddress;
+
+        // Check if the user has enough quota (quota is only for those who mint policy tokens)
         require(
             userQuota[msg.sender][policyTokenAddress] >= _amount,
-            "user's quota not sufficient"
+            "User's quota not sufficient"
         );
 
         _redeemPolicyToken(policyTokenAddress, _stablecoin, _amount);
@@ -293,9 +362,10 @@ contract PolicyCore is IPolicyCore {
 
     /**
      * @notice Claim a payoff based on policy tokens
-     * @param _policyTokenName: Name of the policy token
-     * @param _stablecoin: Address of the stable coin
-     * @param _amount: Amount of USDT (also the amount of policy tokens)
+     * @dev It is done after result settlement and only if the result is true
+     * @param _policyTokenName Name of the policy token
+     * @param _stablecoin Address of the stable coin
+     * @param _amount Amount of USDT (also the amount of policy tokens)
      */
     function claim(
         string memory _policyTokenName,
@@ -304,11 +374,15 @@ contract PolicyCore is IPolicyCore {
     ) public afterSettlement(_policyTokenName) {
         address policyTokenAddress = policyTokenInfoMapping[_policyTokenName]
             .policyTokenAddress;
+
+        // Check if we have already settle the final price
         require(
             priceResult[policyTokenAddress] != 0,
             "Have not got the oracle result"
         );
 
+        // If the event happens, let users claim the payoff
+        // If the event does not happen, let users get the purachse incentive (if any)
         if (settleResult[policyTokenAddress] == true) {
             IPolicyToken policyToken = IPolicyToken(policyTokenAddress);
             require(
@@ -322,38 +396,32 @@ contract PolicyCore is IPolicyCore {
         }
     }
 
-    function _claimPurchaseIncentive(
-        address _policyTokenAddress,
-        uint256 _amount
-    ) internal {
-        uint256 purchaseIncentiveAmount = _amount / purchaseIncentiveRatio;
-        IDegisToken(degis).mint(msg.sender, purchaseIncentiveAmount);
-
-        IPolicyToken policyToken = IPolicyToken(_policyTokenAddress);
-        policyToken.burn(msg.sender, _amount);
-    }
-
     /**
      * @notice Get the final price from the PriceGetter contract
-     * @param _policyTokenName: Address of the token
+     * @param _policyTokenName Name of the policy token
      */
     function settleFinalResult(string memory _policyTokenName)
         public
         afterSettlement(_policyTokenName)
+        notAlreadySettled(_policyTokenName)
     {
         address policyTokenAddress = policyTokenInfoMapping[_policyTokenName]
             .policyTokenAddress;
         require(
             policyTokenAddress != address(0),
-            "this policy token does not exist, maybe you input a wrong name"
+            "This policy token does not exist, maybe you input a wrong name"
         );
 
-        // Get the price from oracle
+        SettlementInfo storage result = settleResult[policyTokenAddress];
+
+        // Get the final price from oracle
         int256 price = IPriceGetter(pricegetter).getLatestPrice(
             _policyTokenName
         );
-        priceResult[policyTokenAddress] = price;
+        require(price > 0, "Price can not be <= 0");
+        result.price = price;
 
+        // Get the final result
         uint256 strike = policyTokenInfoMapping[_policyTokenName].strikePrice;
         bool isHigher = policyTokenInfoMapping[_policyTokenName].isHigher;
 
@@ -361,18 +429,20 @@ contract PolicyCore is IPolicyCore {
         bool situationT2 = (uint256(price) <= strike) && !isHigher;
 
         if (situationT1 || situationT2) {
-            settleResult[policyTokenAddress] = true;
+            result.isHappened = true;
         } else {
-            settleResult[policyTokenAddress] = false;
+            result.isHappened = false;
         }
 
-        emit SettleFinalResult(_policyTokenName, price);
+        result.alreadySettled = true;
+
+        emit SettleFinalResult(_policyTokenName, price, result.isHappened);
     }
 
     /**
      * @notice Settle the policies when then insurance event do not happen
      *         Funds are automatically distributed back to the depositors
-     * @dev    Not recommended to use this function for the gas cost
+     * @dev    Take care of the gas cost and can use the _startIndex and _stopIndex to control the size
      * @param _policyTokenAddress: Address of policy token
      * @param _stablecoin: Address of stablecoin
      * @param _startIndex: Settlement start index
@@ -384,14 +454,16 @@ contract PolicyCore is IPolicyCore {
         uint256 _startIndex,
         uint256 _stopIndex
     ) public onlyOwner {
-        require(
-            priceResult[_policyTokenAddress] != 0,
-            "Have not got the oracle result"
-        );
+        // Copy to memory (will not change the result)
+        SettlementInfo memory result = settleResult[_policyTokenAddress];
 
+        // Must have got the final price
+        require(result.price != 0, "Have not got the oracle result");
+
+        // The event must be "not happend"
         require(
-            settleResult[_policyTokenAddress] == false,
-            "The oracle result is not correct"
+            result.isHappened == false,
+            "Only call this function when the event does not happen"
         );
 
         if (_startIndex == 0 && _stopIndex == 0) {
@@ -410,9 +482,9 @@ contract PolicyCore is IPolicyCore {
     /**
      * @notice Mint Policy Token 1:1 USD
      *         The policy token need to be deployed first!
-     * @param _policyTokenAddress: Address of policy token
-     * @param _stablecoin: Address of stable coin
-     * @param _amount: Amount to mint
+     * @param _policyTokenAddress Address of policy token
+     * @param _stablecoin Address of stable coin
+     * @param _amount Amount to mint
      */
     function _mintPolicyToken(
         address _policyTokenAddress,
@@ -437,30 +509,10 @@ contract PolicyCore is IPolicyCore {
     }
 
     /**
-     * @notice Claim policies when the insurance event happens
-     * @param _policyTokenAddress: Address of policy token
-     * @param _stablecoin: Address of stable coin
-     * @param _amount: Amount to claim
-     */
-    function _claimPolicyToken(
-        address _policyTokenAddress,
-        address _stablecoin,
-        uint256 _amount
-    ) internal enoughUSD(_stablecoin, _amount) {
-        IPolicyToken policyToken = IPolicyToken(_policyTokenAddress);
-
-        IERC20(_stablecoin).safeTransfer(msg.sender, _amount);
-
-        policyToken.burn(msg.sender, _amount);
-
-        userQuota[msg.sender][_policyTokenAddress] -= _amount;
-    }
-
-    /**
      * @notice Redeem policy tokens back, only for depositors
-     * @param _policyTokenAddress: Address of policy token
-     * @param _stablecoin: Address of stable coin
-     * @param _amount: Amount to redeem
+     * @param _policyTokenAddress Address of policy token
+     * @param _stablecoin Address of stable coin
+     * @param _amount Amount to redeem
      */
     function _redeemPolicyToken(
         address _policyTokenAddress,
@@ -477,11 +529,50 @@ contract PolicyCore is IPolicyCore {
     }
 
     /**
+     * @notice Claim policies when the insurance event happens
+     * @param _policyTokenAddress Address of policy token
+     * @param _stablecoin Address of stable coin
+     * @param _amount Amount to claim
+     */
+    function _claimPolicyToken(
+        address _policyTokenAddress,
+        address _stablecoin,
+        uint256 _amount
+    ) internal enoughUSD(_stablecoin, _amount) {
+        IPolicyToken policyToken = IPolicyToken(_policyTokenAddress);
+
+        IERC20(_stablecoin).safeTransfer(msg.sender, _amount);
+
+        policyToken.burn(msg.sender, _amount);
+
+        userQuota[msg.sender][_policyTokenAddress] -= _amount;
+    }
+
+    /**
+     * @notice Claim the purchase incentive when the event does not happen
+     * @dev The incentive is in the form of DEG and there is a ratio
+     * @param _policyTokenAddress Address of the policy token
+     * @param _amount Amount of policy tokens to be claimed
+     */
+    function _claimPurchaseIncentive(
+        address _policyTokenAddress,
+        uint256 _amount
+    ) internal {
+        // Calculate the amount and mint
+        uint256 purchaseIncentiveAmount = _amount / purchaseIncentiveRatio;
+        IDegisToken(degis).mint(msg.sender, purchaseIncentiveAmount);
+
+        // Burn the policy token
+        IPolicyToken policyToken = IPolicyToken(_policyTokenAddress);
+        policyToken.burn(msg.sender, _amount);
+    }
+
+    /**
      * @notice Settle the policy
-     * @param _policyTokenAddress: Address of policy token
-     * @param _stablecoin: Address of stable coin
-     * @param _start: Start index
-     * @param _stop: Stop index
+     * @param _policyTokenAddress Address of policy token
+     * @param _stablecoin Address of stable coin
+     * @param _start Start index
+     * @param _stop Stop index
      */
     function _settlePolicy(
         address _policyTokenAddress,
@@ -499,16 +590,5 @@ contract PolicyCore is IPolicyCore {
             // if (userQuota[user][_policyTokenAddress] == 0)
             delete userQuota[user][_policyTokenAddress];
         }
-    }
-
-    /**
-     * @notice Check if this is a stablecoin address supported, used in factory
-     */
-    function isStablecoinAddress(address _coinAddress)
-        external
-        view
-        returns (bool)
-    {
-        return stablecoin[_coinAddress];
     }
 }
