@@ -33,7 +33,23 @@ contract NaughtyFactory is INaughtyFactory {
 
     address public policyCore;
 
-    constructor() {}
+    address public feeTo;
+    address public feeToSetter;
+
+    constructor(address _feeToSetter) {
+        feeToSetter = _feeToSetter;
+    }
+
+    /**
+     * @notice Only feeToSetter can call some functions
+     */
+    modifier onlyFeeToSetter() {
+        require(
+            msg.sender == feeToSetter,
+            "Only feeToSetter can call this function"
+        );
+        _;
+    }
 
     /**
      * @notice Next token to be deployed
@@ -73,6 +89,22 @@ contract NaughtyFactory is INaughtyFactory {
      */
     function setPolicyCoreAddress(address _policyCore) external {
         policyCore = _policyCore;
+    }
+
+    /**
+     * @notice Set feeTo address
+     * @param _feeTo Address to receive the fee
+     */
+    function setFeeTo(address _feeTo) external onlyFeeToSetter {
+        feeTo = _feeTo;
+    }
+
+    /**
+     * @notice Set feeToSetter address
+     * @param _feeToSetter Address to control the feeTo
+     */
+    function setFeeToSetter(address _feeToSetter) external onlyFeeToSetter {
+        feeToSetter = _feeToSetter;
     }
 
     /**

@@ -24,6 +24,8 @@ contract NaughtyPair is PoolLPToken {
 
     uint256 public constant MINIMUM_LIQUIDITY = 10**3; // minimum liquidity locked
 
+    uint256 public kLast;
+
     event ReserveUpdated(uint256 reserve0, uint256 reserve1);
     event Swap(
         address indexed sender,
@@ -98,6 +100,8 @@ contract NaughtyPair is PoolLPToken {
         uint256 amount0 = balance0 - _reserve0; // just deposit
         uint256 amount1 = balance1 - _reserve1;
 
+        bool feeOn = _mintFee(_reserve0, _reserve1);
+
         uint256 _totalSupply = totalSupply(); // gas savings
         if (_totalSupply == 0) {
             liquidity = PRBMath.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
@@ -112,6 +116,34 @@ contract NaughtyPair is PoolLPToken {
         LPMint(to, liquidity);
 
         _update(balance0, balance1);
+
+        if (feeOn) kLast = uint256(reserve0 * reserve1);
+    }
+
+    // if fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
+    function _mintFee(uint112 _reserve0, uint112 _reserve1)
+        private
+        returns (bool feeOn)
+    {
+        address feeTo = INaughtyFactory(factory).feeTo();
+        feeOn = feeTo != address(0); // If has feeTo then returns feeOn(true)
+
+        uint256 _kLast = kLast;
+        if (feeOn) {
+            if (_kLast != 0) {
+                uint256 rootK = PRBMath.sqrt(uint256(_reserve0) * _reserve1);
+                uint256 rootKLast = PRBMath.sqrt(_kLast);
+
+                if (rootK > rootKLast) {
+                    uint256 numerator = totalSupply() * rootK - rootKLast;
+                    uint256 denominator = rootK * 5 + rootKLast * 3;
+                    uint256 liquidity = numerator / denominator;
+                    if (liquidity > 0) _mint(feeTo, liquidity);
+                }
+            }
+        } else if (_kLast != 0) {
+            kLast = 0;
+        }
     }
 
     /**
@@ -125,17 +157,21 @@ contract NaughtyPair is PoolLPToken {
         lock
         returns (uint256 amount0, uint256 amount1)
     {
+        (uint112 _reserve0, uint112 _reserve1) = getReserves(); // gas savings
+
         uint256 balance0 = IERC20(token0).balanceOf(address(this)); // policy token balance
         uint256 balance1 = IERC20(token1).balanceOf(address(this)); // stablecoin balance
 
         uint256 liquidity = LPBalanceOf(address(this)); // lp token balance
+
+        bool feeOn = _mintFee(_reserve0, _reserve1);
 
         uint256 _totalSupply = totalSupply(); // gas savings
         // How many tokens to be sent back
         amount0 = (liquidity * balance0) / _totalSupply;
         amount1 = (liquidity * balance1) / _totalSupply;
 
-        require(amount0 > 0 && amount1 > 0, "insufficient liquidity burned");
+        require(amount0 > 0 && amount1 > 0, "Insufficient liquidity burned");
 
         // Currently all the liquidity in the pool was just sent by the user, so burn all
         LPBurn(address(this), liquidity);
@@ -147,6 +183,8 @@ contract NaughtyPair is PoolLPToken {
         balance1 = IERC20(token1).balanceOf(address(this));
 
         _update(balance0, balance1);
+
+        if (feeOn) kLast = uint256(reserve0 * reserve1);
     }
 
     /**
@@ -191,11 +229,12 @@ contract NaughtyPair is PoolLPToken {
         uint256 amount1In = balance1 > _reserve1 - _amount1Out
             ? balance1 - (_reserve1 - _amount1Out)
             : 0;
+
         require(amount0In > 0 || amount1In > 0, "INSUFFICIENT_INPUT_AMOUNT");
 
         {
-            uint256 balance0Adjusted = balance0 * 1000 - amount0In * 3;
-            uint256 balance1Adjusted = balance1 * 1000 - amount1In * 3;
+            uint256 balance0Adjusted = balance0 * 1000 - amount0In * 50;
+            uint256 balance1Adjusted = balance1 * 1000 - amount1In * 50;
             require(
                 balance0Adjusted * balance1Adjusted >=
                     _reserve0 * _reserve1 * 1000**2,
@@ -221,7 +260,7 @@ contract NaughtyPair is PoolLPToken {
      */
     function _update(uint256 balance0, uint256 balance1) private {
         uint112 MAX_NUM = type(uint112).max;
-        require(balance0 <= MAX_NUM && balance1 <= MAX_NUM, "uint112 OVERFLOW");
+        require(balance0 <= MAX_NUM && balance1 <= MAX_NUM, "Uint112 OVERFLOW");
 
         reserve0 = uint112(balance0);
         reserve1 = uint112(balance1);

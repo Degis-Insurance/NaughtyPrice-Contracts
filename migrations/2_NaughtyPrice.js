@@ -4,8 +4,10 @@ const NaughtyRouter = artifacts.require("NaughtyRouter");
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyLibrary = artifacts.require("NaughtyLibrary");
 const PriceGetter = artifacts.require("PriceGetter");
-const NaughtyProxy = artifacts.require("NaughtyProxy");
 
+const degis = "0xeffedf1d042122493ba9c96e0a1208295554cb41";
+
+const fs = require("fs");
 /**
  * @dev Deploy: USDT(for test, mainnet will have a fixed address)
  *              NaughtyRouter(for swapping tokens)
@@ -29,8 +31,25 @@ module.exports = async function (deployer) {
     USDT.address,
     NaughtyFactory.address,
     NaughtyRouter.address,
-    PriceGetter.address
+    PriceGetter.address,
+    degis
   );
+
+  const addressList = {
+    USDT: USDT.address,
+    PriceGetter: PriceGetter.address,
+    NaughtyFactory: NaughtyFactory.address,
+    NaughtyRouter: NaughtyRouter.address,
+    PolicyCore: PolicyCore.address,
+  };
+
+  const data = JSON.stringify(addressList);
+
+  fs.writeFile("address.json", data, (err) => {
+    if (err) {
+      throw err;
+    }
+  });
 
   // await deployer.deploy(
   //   NaughtyProxy,

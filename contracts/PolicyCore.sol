@@ -82,14 +82,14 @@ contract PolicyCore is IPolicyCore {
         address _usdt,
         address _factory,
         address _router,
-        address _pricegetter,
+        address _priceGetter,
         address _degis
     ) {
         stablecoin[_usdt] = true;
 
         factory = _factory;
         router = _router;
-        pricegetter = _pricegetter;
+        pricegetter = _priceGetter;
         degis = _degis;
 
         owner = msg.sender;
@@ -170,7 +170,8 @@ contract PolicyCore is IPolicyCore {
      * @param _policyTokenName Name of the policy token
      */
     modifier notAlreadySettled(string memory _policyTokenName) {
-        address policyTokenAddress = policyTokenInfoMapping[_policyTokenName];
+        address policyTokenAddress = policyTokenInfoMapping[_policyTokenName]
+            .policyTokenAddress;
 
         require(
             settleResult[policyTokenAddress].alreadySettled == false,
@@ -374,13 +375,13 @@ contract PolicyCore is IPolicyCore {
 
         // Check if we have already settle the final price
         require(
-            priceResult[policyTokenAddress] != 0,
+            settleResult[policyTokenAddress].alreadySettled == true,
             "Have not got the oracle result"
         );
 
         // If the event happens, let users claim the payoff
         // If the event does not happen, let users get the purachse incentive (if any)
-        if (settleResult[policyTokenAddress] == true) {
+        if (settleResult[policyTokenAddress].isHappened == true) {
             IPolicyToken policyToken = IPolicyToken(policyTokenAddress);
             require(
                 policyToken.balanceOf(msg.sender) >= _amount,
