@@ -24,7 +24,7 @@ contract NaughtyPair is PoolLPToken {
 
     uint256 public constant MINIMUM_LIQUIDITY = 10**3; // minimum liquidity locked
 
-    uint256 public kLast;
+    // uint256 public kLast;
 
     event ReserveUpdated(uint256 reserve0, uint256 reserve1);
     event Swap(
@@ -100,7 +100,7 @@ contract NaughtyPair is PoolLPToken {
         uint256 amount0 = balance0 - _reserve0; // just deposit
         uint256 amount1 = balance1 - _reserve1;
 
-        bool feeOn = _mintFee(_reserve0, _reserve1);
+        // bool feeOn = _mintFee(_reserve0, _reserve1);
 
         uint256 _totalSupply = totalSupply(); // gas savings
         if (_totalSupply == 0) {
@@ -117,34 +117,34 @@ contract NaughtyPair is PoolLPToken {
 
         _update(balance0, balance1);
 
-        if (feeOn) kLast = uint256(reserve0 * reserve1);
+        // if (feeOn) kLast = uint256(reserve0 * reserve1);
     }
 
     // if fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
-    function _mintFee(uint112 _reserve0, uint112 _reserve1)
-        private
-        returns (bool feeOn)
-    {
-        address feeTo = INaughtyFactory(factory).feeTo();
-        feeOn = feeTo != address(0); // If has feeTo then returns feeOn(true)
+    // function _mintFee(uint112 _reserve0, uint112 _reserve1)
+    //     private
+    //     returns (bool feeOn)
+    // {
+    //     address feeTo = INaughtyFactory(factory).feeTo();
+    //     feeOn = feeTo != address(0); // If has feeTo then returns feeOn(true)
 
-        uint256 _kLast = kLast;
-        if (feeOn) {
-            if (_kLast != 0) {
-                uint256 rootK = PRBMath.sqrt(uint256(_reserve0) * _reserve1);
-                uint256 rootKLast = PRBMath.sqrt(_kLast);
+    //     uint256 _kLast = kLast;
+    //     if (feeOn) {
+    //         if (_kLast != 0) {
+    //             uint256 rootK = PRBMath.sqrt(uint256(_reserve0) * _reserve1);
+    //             uint256 rootKLast = PRBMath.sqrt(_kLast);
 
-                if (rootK > rootKLast) {
-                    uint256 numerator = totalSupply() * rootK - rootKLast;
-                    uint256 denominator = rootK * 5 + rootKLast * 3;
-                    uint256 liquidity = numerator / denominator;
-                    if (liquidity > 0) _mint(feeTo, liquidity);
-                }
-            }
-        } else if (_kLast != 0) {
-            kLast = 0;
-        }
-    }
+    //             if (rootK > rootKLast) {
+    //                 uint256 numerator = totalSupply() * rootK - rootKLast;
+    //                 uint256 denominator = rootK * 5 + rootKLast * 3;
+    //                 uint256 liquidity = numerator / denominator;
+    //                 if (liquidity > 0) _mint(feeTo, liquidity);
+    //             }
+    //         }
+    //     } else if (_kLast != 0) {
+    //         kLast = 0;
+    //     }
+    // }
 
     /**
      * @notice Burn LP tokens give back the original tokens
@@ -164,7 +164,7 @@ contract NaughtyPair is PoolLPToken {
 
         uint256 liquidity = LPBalanceOf(address(this)); // lp token balance
 
-        bool feeOn = _mintFee(_reserve0, _reserve1);
+        // bool feeOn = _mintFee(_reserve0, _reserve1);
 
         uint256 _totalSupply = totalSupply(); // gas savings
         // How many tokens to be sent back
@@ -184,7 +184,7 @@ contract NaughtyPair is PoolLPToken {
 
         _update(balance0, balance1);
 
-        if (feeOn) kLast = uint256(reserve0 * reserve1);
+        // if (feeOn) kLast = uint256(reserve0 * reserve1);
     }
 
     /**

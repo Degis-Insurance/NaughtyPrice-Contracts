@@ -379,6 +379,8 @@ contract PolicyCore is IPolicyCore {
             "Have not got the oracle result"
         );
 
+        uint256 amountWithFee = (_amount * 990) / 1000;
+
         // If the event happens, let users claim the payoff
         // If the event does not happen, let users get the purachse incentive (if any)
         if (settleResult[policyTokenAddress].isHappened == true) {
@@ -388,9 +390,9 @@ contract PolicyCore is IPolicyCore {
                 "You do not have sufficient policy tokens to claim"
             );
 
-            _claimPolicyToken(policyTokenAddress, _stablecoin, _amount);
+            _claimPolicyToken(policyTokenAddress, _stablecoin, amountWithFee);
         } else {
-            _claimPurchaseIncentive(policyTokenAddress, _amount);
+            _claimPurchaseIncentive(policyTokenAddress, amountWithFee);
         }
     }
 
@@ -585,9 +587,10 @@ contract PolicyCore is IPolicyCore {
         for (uint256 i = _start; i < _stop; i++) {
             address user = allDepositors[_policyTokenAddress][i];
             uint256 amount = userQuota[user][_policyTokenAddress];
+            uint256 amountWithFee = (amount * 990) / 1000;
 
-            if (amount > 0) {
-                IERC20(_stablecoin).safeTransfer(user, amount);
+            if (amountWithFee > 0) {
+                IERC20(_stablecoin).safeTransfer(user, amountWithFee);
 
                 // userQuota[user][_policyTokenAddress] -= amount;
                 // if (userQuota[user][_policyTokenAddress] == 0)
