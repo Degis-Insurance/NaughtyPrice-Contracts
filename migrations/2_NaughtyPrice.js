@@ -20,7 +20,7 @@ module.exports = async function (deployer) {
 
   await deployer.deploy(PriceGetter);
 
-  await deployer.deploy(NaughtyFactory);
+  await deployer.deploy(NaughtyFactory, degis);
 
   await deployer.deploy(NaughtyLibrary);
   await deployer.link(NaughtyLibrary, NaughtyRouter);

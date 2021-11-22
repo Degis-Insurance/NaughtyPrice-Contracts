@@ -45,8 +45,8 @@ contract NaughtyRouter {
 
     /**
      * @notice Add liquidity function
-     * @param _token0: Address of policyToken
-     * @param _token1: Address of USDT
+     * @param _tokenA: Address of policyToken
+     * @param _tokenB: Address of USDT
      * @param _amountADesired: Amount of policyToken desired
      * @param _amountBDesired: Amount of USDT desired
      * @param _amountAMin: Minimum amoutn of policy token
@@ -58,8 +58,8 @@ contract NaughtyRouter {
      * @return liquidity LP token to be mint
      */
     function addLiquidity(
-        address _token0,
-        address _token1,
+        address _tokenA,
+        address _tokenB,
         uint256 _amountADesired,
         uint256 _amountBDesired,
         uint256 _amountAMin,
@@ -77,8 +77,8 @@ contract NaughtyRouter {
     {
         {
             (amountA, amountB) = _addLiquidity(
-                _token0,
-                _token1,
+                _tokenA,
+                _tokenB,
                 _amountADesired,
                 _amountBDesired,
                 _amountAMin,
@@ -86,10 +86,10 @@ contract NaughtyRouter {
             );
         }
 
-        address pair = NaughtyLibrary.getPairAddress(factory, _token0, _token1);
+        address pair = NaughtyLibrary.getPairAddress(factory, _tokenA, _tokenB);
 
-        transferHelper(_token0, msg.sender, pair, amountA);
-        transferHelper(_token1, msg.sender, pair, amountB);
+        transferHelper(_tokenA, msg.sender, pair, amountA);
+        transferHelper(_tokenB, msg.sender, pair, amountB);
 
         liquidity = INaughtyPair(pair).mint(_to);
     }
@@ -103,8 +103,8 @@ contract NaughtyRouter {
      * @param _amountBMin Minimum amount of tokenB given out
      * @param _to User address
      * @param _deadline Deadline of this transaction
-     * @return amount0 Amount of token0 given out
-     * @return amount1 Amount of token1 given out
+     * @return amountA Amount of token0 given out
+     * @return amountB Amount of token1 given out
      */
     function removeLiquidity(
         address _tokenA,
@@ -117,17 +117,17 @@ contract NaughtyRouter {
     )
         public
         beforeDeadline(_deadline)
-        returns (uint256 amount0, uint256 amount1)
+        returns (uint256 amountA, uint256 amountB)
     {
         address pair = NaughtyLibrary.getPairAddress(factory, _tokenA, _tokenB);
 
         INaughtyPair(pair).safeTransferFrom(msg.sender, pair, _liquidity); // send liquidity to pair
 
         // Amount0: insurance token
-        (amount0, amount1) = INaughtyPair(pair).burn(_to);
+        (amountA, amountB) = INaughtyPair(pair).burn(_to);
 
-        require(amount0 >= _amountAMin, "Insufficient insurance token amount");
-        require(amount1 >= _amountBMin, "Insufficient USDT token");
+        require(amountA >= _amountAMin, "Insufficient insurance token amount");
+        require(amountB >= _amountBMin, "Insufficient USDT token");
     }
 
     /**

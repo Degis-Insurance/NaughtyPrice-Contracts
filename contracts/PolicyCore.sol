@@ -248,6 +248,20 @@ contract PolicyCore is IPolicyCore {
         return stablecoin[_coinAddress];
     }
 
+    /**
+     * @notice Check a user's quota for a certain policy token
+     * @param _userAddress Address of the user to be checked
+     * @param _policyTokenAddress Address of the policy token
+     * @return _quota User's quota result
+     */
+    function checkUserQuota(address _userAddress, address _policyTokenAddress)
+        external
+        view
+        returns (uint256 _quota)
+    {
+        _quota = userQuota[_userAddress][_policyTokenAddress];
+    }
+
     // ---------------------------------------------------------------------------------------- //
     // ************************************ Set Functions ************************************* //
     // ---------------------------------------------------------------------------------------- //
