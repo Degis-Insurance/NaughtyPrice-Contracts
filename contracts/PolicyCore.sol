@@ -57,6 +57,7 @@ contract PolicyCore is IPolicyCore {
     struct PolicyTokenInfo {
         address policyTokenAddress;
         bool isCall;
+        uint256 percentage;
         uint256 strikePrice;
         uint256 deadline;
         uint256 settleTimestamp;
