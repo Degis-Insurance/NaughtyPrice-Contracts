@@ -49,7 +49,7 @@ library NaughtyLibrary {
         require(amountIn > 0, "insufficient input amount");
         require(reserveIn > 0 && reserveOut > 0, "insufficient liquidity");
 
-        uint256 amountInWithFee = amountIn * 990;
+        uint256 amountInWithFee = amountIn * 980;
         uint256 numerator = amountInWithFee * reserveOut;
         uint256 denominator = reserveIn * 1000 + amountInWithFee;
 
@@ -66,7 +66,7 @@ library NaughtyLibrary {
         require(reserveIn > 0 && reserveOut > 0, "insufficient liquidity");
 
         uint256 numerator = reserveIn * amountOut * 1000;
-        uint256 denominator = (reserveOut - amountOut) * 990;
+        uint256 denominator = (reserveOut - amountOut) * 980;
         amountIn = (numerator / denominator) + 1;
     }
 

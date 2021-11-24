@@ -157,7 +157,7 @@ contract NaughtyPair is PoolLPToken {
         lock
         returns (uint256 amount0, uint256 amount1)
     {
-        (uint112 _reserve0, uint112 _reserve1) = getReserves(); // gas savings
+        // (uint112 _reserve0, uint112 _reserve1) = getReserves(); // gas savings
 
         uint256 balance0 = IERC20(token0).balanceOf(address(this)); // policy token balance
         uint256 balance1 = IERC20(token1).balanceOf(address(this)); // stablecoin balance
@@ -233,8 +233,8 @@ contract NaughtyPair is PoolLPToken {
         require(amount0In > 0 || amount1In > 0, "INSUFFICIENT_INPUT_AMOUNT");
 
         {
-            uint256 balance0Adjusted = balance0 * 1000 - amount0In * 50;
-            uint256 balance1Adjusted = balance1 * 1000 - amount1In * 50;
+            uint256 balance0Adjusted = balance0 * 1000 - amount0In * 20;
+            uint256 balance1Adjusted = balance1 * 1000 - amount1In * 20;
             require(
                 balance0Adjusted * balance1Adjusted >=
                     _reserve0 * _reserve1 * 1000**2,

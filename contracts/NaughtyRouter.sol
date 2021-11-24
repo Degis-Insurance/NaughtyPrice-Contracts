@@ -9,8 +9,9 @@ import "./libraries/NaughtyLibrary.sol";
 import "./interfaces/IPolicyToken.sol";
 
 /**
- * @title NaughtyRouter
+ * @title  NaughtyRouter
  * @notice Router for the pool, you can add/remove liquidity or swap A for B.
+ *         Swapping fee rate is 2% and all of them are given to LP.
  */
 contract NaughtyRouter {
     using SafeERC20 for IERC20;
@@ -45,14 +46,14 @@ contract NaughtyRouter {
 
     /**
      * @notice Add liquidity function
-     * @param _tokenA: Address of policyToken
-     * @param _tokenB: Address of USDT
-     * @param _amountADesired: Amount of policyToken desired
-     * @param _amountBDesired: Amount of USDT desired
-     * @param _amountAMin: Minimum amoutn of policy token
-     * @param _amountBMin: Minimum amount of stablecoin
-     * @param _to: Address that receive the lp token, normally the user himself
-     * @param _deadline: Transaction will revert after this deadline
+     * @param _tokenA Address of policyToken
+     * @param _tokenB Address of USDT
+     * @param _amountADesired Amount of policyToken desired
+     * @param _amountBDesired Amount of USDT desired
+     * @param _amountAMin Minimum amoutn of policy token
+     * @param _amountBMin Minimum amount of stablecoin
+     * @param _to Address that receive the lp token, normally the user himself
+     * @param _deadline Transaction will revert after this deadline
      * @return amountA Amount of tokenA to be input
      * @return amountB Amount of tokenB to be input
      * @return liquidity LP token to be mint
