@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
 import "./libraries/NaughtyLibrary.sol";
-
+import "./interfaces/IBuyerToken.sol";
 import "./interfaces/IPolicyToken.sol";
 
 /**
@@ -20,29 +18,63 @@ contract NaughtyRouter {
     // Some other contracts
     address public factory;
     address public policyCore;
+    address public buyerToken;
 
     address public owner;
 
     mapping(address => mapping(uint256 => uint256)) userQuota;
 
-    constructor(address _factory) {
+    constructor(address _factory, address _buyerToken) {
         owner = msg.sender;
+
         factory = _factory;
+        buyerToken = _buyerToken;
     }
 
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************** Modifiers *************************************** //
+    // ---------------------------------------------------------------------------------------- //
+
+    /**
+     * @notice Transactions are available only before the deadline
+     * @param _deadLine Deadline of the pool
+     */
     modifier beforeDeadline(uint256 _deadLine) {
         require(block.timestamp < _deadLine, "expired transaction");
         _;
     }
 
+    /**
+     * @notice Only the owner can call some functions
+     */
     modifier onlyOwner() {
         require(msg.sender == owner, "Only the owner can call this function");
         _;
     }
 
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************ Set Functions ************************************* //
+    // ---------------------------------------------------------------------------------------- //
+
+    /**
+     * @notice Set the address of policyCore
+     * @param _coreAddress Address of new policyCore
+     */
     function setPolicyCore(address _coreAddress) public onlyOwner {
         policyCore = _coreAddress;
     }
+
+    /**
+     * @notice Set the address of buyer token
+     * @param _buyerToken Address of new buyer token
+     */
+    function setBuyerToken(address _buyerToken) public onlyOwner {
+        buyerToken = _buyerToken;
+    }
+
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************ Main Functions ************************************ //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Add liquidity function
@@ -178,6 +210,12 @@ contract NaughtyRouter {
             policyCore,
             _tokenIn
         );
+
+        // If the user is buying insurances, give them buyer tokens
+        if (isStablecoin) {
+            IBuyerToken(buyerToken).mint(msg.sender, amounts);
+        }
+
         uint256 amount0Out = isStablecoin ? _amountOut : 0;
         uint256 amount1Out = isStablecoin ? 0 : _amountOut;
 
@@ -230,6 +268,11 @@ contract NaughtyRouter {
             policyCore,
             _tokenIn
         );
+
+        // If the user is buying insurances, give them buyer tokens
+        if (isStablecoin) {
+            IBuyerToken(buyerToken).mint(msg.sender, amounts);
+        }
 
         uint256 amount0Out = isStablecoin ? amounts : 0;
         uint256 amount1Out = isStablecoin ? 0 : amounts;
@@ -287,6 +330,10 @@ contract NaughtyRouter {
             }
         }
     }
+
+    // ---------------------------------------------------------------------------------------- //
+    // *********************************** Internal Functions ********************************* //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Finish the erc20 transfer operation

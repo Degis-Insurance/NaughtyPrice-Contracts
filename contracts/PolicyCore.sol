@@ -5,11 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./libraries/NaughtyLibrary.sol";
 import "./interfaces/IPolicyToken.sol";
-import "./interfaces/INaughtyRouter.sol";
 import "./interfaces/INaughtyFactory.sol";
 import "./interfaces/IPriceGetter.sol";
 import "./interfaces/IPolicyCore.sol";
-import "./interfaces/IDegisToken.sol";
 
 /**
  * @title  PolicyCore
@@ -37,33 +35,32 @@ contract PolicyCore is IPolicyCore {
     using SafeERC20 for IERC20;
 
     // Factory contract, responsible for deploying new contracts
-    address public factory;
-
-    // Router contract, responsible for pair swapping
-    address public router;
+    INaughtyFactory public factory;
 
     // Oracle contract, responsible for getting the final price
-    address public priceGetter;
+    IPriceGetter public priceGetter;
 
-    // Degis token address, used for purchase incentive
-    address public degis;
+    // Lottery address
+    address public lottery;
 
     // Owner address
     address public owner;
 
-    // Ratio =
-    uint256 public purchaseIncentiveRatio;
+    // Current distribution index
+    uint256 public currentDistributionIndex;
 
     struct PolicyTokenInfo {
         address policyTokenAddress;
         bool isCall;
-        uint256 percentage;
         uint256 strikePrice;
         uint256 deadline;
         uint256 settleTimestamp;
     }
     // Policy toke name => Policy token information
     mapping(string => PolicyTokenInfo) policyTokenInfoMapping;
+
+    // Policy token name list
+    string[] allPolicyTokens;
 
     // Stablecoin address => Supported or not
     mapping(address => bool) stablecoin;
@@ -90,25 +87,19 @@ contract PolicyCore is IPolicyCore {
 
     /**
      * @notice Constructor, for some addresses
-     * @param _usdt Stablecoin (first supported) in the pool
+     * @param _usdt USDT is the first stablecoin supported in the pool
      * @param _factory Address of naughty factory
-     * @param _router Address of naughty router
      * @param _priceGetter Address of the oracle contract
-     * @param _degis Address of degis token, used for purchase incentive
      */
     constructor(
         address _usdt,
         address _factory,
-        address _router,
-        address _priceGetter,
-        address _degis
+        address _priceGetter
     ) {
         stablecoin[_usdt] = true;
 
-        factory = _factory;
-        router = _router;
-        priceGetter = _priceGetter;
-        degis = _degis;
+        factory = INaughtyFactory(_factory);
+        priceGetter = IPriceGetter(_priceGetter);
 
         owner = msg.sender;
     }
@@ -263,6 +254,21 @@ contract PolicyCore is IPolicyCore {
         _quota = userQuota[_userAddress][_policyTokenAddress];
     }
 
+    /**
+     * @notice Get the information about all the tokens
+     * @return tokensInfo Token information list
+     */
+    function getAllTokens() external view returns (PolicyTokenInfo[] memory) {
+        uint256 length = allPolicyTokens.length;
+        PolicyTokenInfo[] memory tokensInfo = new PolicyTokenInfo[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            tokensInfo[i] = policyTokenInfoMapping[allPolicyTokens[i]];
+        }
+
+        return tokensInfo;
+    }
+
     // ---------------------------------------------------------------------------------------- //
     // ************************************ Set Functions ************************************* //
     // ---------------------------------------------------------------------------------------- //
@@ -274,16 +280,6 @@ contract PolicyCore is IPolicyCore {
     function addStablecoin(address _newStablecoin) external onlyOwner {
         stablecoin[_newStablecoin] = true;
         emit NewStablecoinAdded(_newStablecoin);
-    }
-
-    /**
-     * @notice Change the purchase incentive amount
-     * @dev policyToken amount(not happened) / ratio = incentive amount (in DEG)
-     * @param _newRatio The amount is calculated by this ratio
-     */
-    function setPurchaseIncentiveAmount(uint256 _newRatio) external onlyOwner {
-        purchaseIncentiveRatio = _newRatio;
-        emit PurchaseIncentiveRatioSet(_newRatio);
     }
 
     // ---------------------------------------------------------------------------------------- //
@@ -310,7 +306,7 @@ contract PolicyCore is IPolicyCore {
         uint256 _settleTimestamp
     ) public onlyOwner returns (address) {
         // Deploy a new policy token by the factory contract
-        address policyTokenAddress = INaughtyFactory(factory).deployPolicyToken(
+        address policyTokenAddress = factory.deployPolicyToken(
             _policyTokenName
         );
 
@@ -352,12 +348,13 @@ contract PolicyCore is IPolicyCore {
             .policyTokenAddress;
 
         // Deploy a new pool (policyToken <=> stablecoin)
-        address poolAddress = INaughtyFactory(factory).deployPool(
+        address poolAddress = factory.deployPool(
             policyTokenAddress,
             _stablecoin,
             _poolDeadline
         );
 
+        // Record the mapping
         whichStablecoin[policyTokenAddress] = _stablecoin;
         return poolAddress;
     }
@@ -376,7 +373,7 @@ contract PolicyCore is IPolicyCore {
         address policyTokenAddress = policyTokenInfoMapping[_policyTokenName]
             .policyTokenAddress;
 
-        // Check if the user give the right stablecoin
+        // Check if the user gives the right stablecoin
         require(
             whichStablecoin[policyTokenAddress] == _stablecoin,
             "PolicyToken and stablecoin not matched"
@@ -447,10 +444,6 @@ contract PolicyCore is IPolicyCore {
             );
 
             _claimPolicyToken(policyTokenAddress, _stablecoin, amountWithFee);
-        }
-        // If the event does not happen, let users get the purachse incentive (if any)
-        else {
-            _claimPurchaseIncentive(policyTokenAddress, amountWithFee);
         }
     }
 
@@ -531,14 +524,49 @@ contract PolicyCore is IPolicyCore {
         if (_startIndex == 0 && _stopIndex == 0) {
             uint256 length = allDepositors[_policyTokenAddress].length;
             _settlePolicy(_policyTokenAddress, _stablecoin, 0, length);
+            currentDistributionIndex = length;
         } else {
+            require(
+                currentDistributionIndex == _startIndex,
+                "You need to start from the last distribution point"
+            );
             _settlePolicy(
                 _policyTokenAddress,
                 _stablecoin,
                 _startIndex,
                 _stopIndex
             );
+            currentDistributionIndex = _stopIndex;
         }
+
+        if (
+            currentDistributionIndex ==
+            allDepositors[_policyTokenAddress].length
+        ) {
+            _finishSettlement(_policyTokenAddress, _stablecoin);
+        }
+    }
+
+    /**
+     * @notice Finish settlement process
+     * @param _policyTokenAddress Address of the policy token
+     * @param _stablecoin Address of stable coin
+     */
+    function _finishSettlement(address _policyTokenAddress, address _stablecoin)
+        internal
+    {
+        currentDistributionIndex = 0;
+
+        uint256 feeToLottery = IERC20(_stablecoin).balanceOf(address(this));
+
+        require(
+            address(lottery) != address(0),
+            "Please set the lottery address"
+        );
+
+        IERC20(_stablecoin).safeTransfer(lottery, feeToLottery);
+
+        emit FinishSettlementPolicies(_policyTokenAddress, _stablecoin);
     }
 
     // ---------------------------------------------------------------------------------------- //
@@ -574,6 +602,7 @@ contract PolicyCore is IPolicyCore {
             allDepositors[_policyTokenAddress].push(msg.sender);
         }
 
+        // Update the user quota
         userQuota[msg.sender][_policyTokenAddress] += _amount;
     }
 
@@ -623,25 +652,6 @@ contract PolicyCore is IPolicyCore {
 
         if (userQuota[msg.sender][_policyTokenAddress] == 0)
             delete userQuota[msg.sender][_policyTokenAddress];
-    }
-
-    /**
-     * @notice Claim the purchase incentive when the event does not happen
-     * @dev The incentive is in the form of DEG and there is a ratio
-     * @param _policyTokenAddress Address of the policy token
-     * @param _amount Amount of policy tokens to be claimed
-     */
-    function _claimPurchaseIncentive(
-        address _policyTokenAddress,
-        uint256 _amount
-    ) internal {
-        // Calculate the amount and mint
-        uint256 purchaseIncentiveAmount = _amount / purchaseIncentiveRatio;
-        IDegisToken(degis).mint(msg.sender, purchaseIncentiveAmount);
-
-        // Burn the policy token
-        IPolicyToken policyToken = IPolicyToken(_policyTokenAddress);
-        policyToken.burn(msg.sender, _amount);
     }
 
     /**

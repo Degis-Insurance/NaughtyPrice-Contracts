@@ -5,7 +5,11 @@ const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyLibrary = artifacts.require("NaughtyLibrary");
 const PriceGetter = artifacts.require("PriceGetter");
 
-const degis = "0xeffedf1d042122493ba9c96e0a1208295554cb41";
+const degis = "0x77E4DC6B670B618dfE00fea8AD36d445a48D0181";
+
+const buyerToken = "0x4F99CE3294E7e650CEBb8f94e6cD7C629C4f494D";
+
+const usd_rinkeby = "0x4379a39c8Bd46D651eC4bdA46C32E2725b217860";
 
 const fs = require("fs");
 /**
@@ -16,7 +20,7 @@ const fs = require("fs");
  *
  */
 module.exports = async function (deployer) {
-  await deployer.deploy(USDT);
+  // await deployer.deploy(USDT);
 
   await deployer.deploy(PriceGetter);
 
@@ -24,19 +28,16 @@ module.exports = async function (deployer) {
 
   await deployer.deploy(NaughtyLibrary);
   await deployer.link(NaughtyLibrary, NaughtyRouter);
-  await deployer.deploy(NaughtyRouter, NaughtyFactory.address);
+  await deployer.deploy(NaughtyRouter, NaughtyFactory.address, buyerToken);
 
   await deployer.deploy(
     PolicyCore,
-    USDT.address,
+    usd_rinkeby,
     NaughtyFactory.address,
-    NaughtyRouter.address,
-    PriceGetter.address,
-    degis
+    PriceGetter.address
   );
 
   const addressList = {
-    USDT: USDT.address,
     PriceGetter: PriceGetter.address,
     NaughtyFactory: NaughtyFactory.address,
     NaughtyRouter: NaughtyRouter.address,

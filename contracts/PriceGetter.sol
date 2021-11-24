@@ -23,6 +23,11 @@ contract PriceGetter is IPriceGetter {
         );
         currentPriceFeed["ETH"] = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
 
+        priceFeed["BTC"] = AggregatorV3Interface(
+            0xECe365B379E1dD183B20fc5f022230C044d51404
+        );
+        currentPriceFeed["BTC"] = 0xECe365B379E1dD183B20fc5f022230C044d51404;
+
         // Uncomment below when launched on Avalanche
         // priceFeed["AVAX"] = AggregatorV3Interface(
         //     0x0A77230d17318075983913bC2145DB16C7366156

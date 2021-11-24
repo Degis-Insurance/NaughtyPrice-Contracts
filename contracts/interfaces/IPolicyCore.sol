@@ -10,6 +10,11 @@ interface IPolicyCore {
     event NewStablecoinAdded(address _newStablecoin);
     event PurchaseIncentiveRatioSet(uint256 _newRatio);
 
+    event FinishSettlementPolicies(
+        address _policyTokenAddress,
+        address _stablecoin
+    );
+
     function isStablecoinAddress(address _coinAddress)
         external
         view
