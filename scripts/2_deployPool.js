@@ -2,6 +2,8 @@ const tokenName = "BTC100L202101";
 
 const USDT = artifacts.require("USDT");
 
+const usd_address = "0x4379a39c8Bd46D651eC4bdA46C32E2725b217860";
+
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyFactory = artifacts.require("NaughtyFactory");
 
@@ -17,12 +19,12 @@ module.exports = async (callback) => {
     const core = await PolicyCore.deployed();
     console.log(core.address);
 
-    await core.addStablecoin(usdt.address, { from: mainAccount });
+    await core.addStablecoin(usd_address, { from: mainAccount });
 
     let now = new Date().getTime();
     now = parseInt(now / 1000);
 
-    const tx = await core.deployPool(tokenName, usdt.address, now + 5000, {
+    const tx = await core.deployPool(tokenName, usd_address, now + 300000, {
       from: mainAccount,
     });
     console.log(tx.tx);
@@ -31,7 +33,7 @@ module.exports = async (callback) => {
       from: mainAccount,
     });
 
-    const pairAddress = await factory.getPairAddress(ad, usdt.address, {
+    const pairAddress = await factory.getPairAddress(ad, usd_address, {
       from: mainAccount,
     });
     console.log("Pair address:", pairAddress);

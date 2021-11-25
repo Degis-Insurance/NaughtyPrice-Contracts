@@ -29,8 +29,8 @@ module.exports = async (callback) => {
       testAddress,
       false,
       web3.utils.toWei("30", "ether"),
-      now + 5000,
-      now + 5600,
+      now + 300000,
+      now + 300060,
       {
         from: mainAccount,
       }

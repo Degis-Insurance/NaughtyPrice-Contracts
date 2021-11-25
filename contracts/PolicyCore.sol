@@ -333,6 +333,8 @@ contract PolicyCore is IPolicyCore {
         // Record the address to name mapping
         policyTokenAddressToName[policyTokenAddress] = _policyTokenName;
 
+        allPolicyTokens.push(_policyTokenName);
+
         // You can not get the return value from outside, but keep it here.
         return policyTokenAddress;
     }
