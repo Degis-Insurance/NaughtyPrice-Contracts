@@ -15,6 +15,16 @@ interface IPolicyCore {
         address _stablecoin
     );
 
+    function findAddressbyName(string memory _policyTokenName)
+        external
+        view
+        returns (address _policyTokenAddress);
+
+    function findNamebyAddress(address _policyTokenAddress)
+        external
+        view
+        returns (string memory);
+
     function isStablecoinAddress(address _coinAddress)
         external
         view
@@ -39,6 +49,13 @@ interface IPolicyCore {
         string memory _policyTokenName,
         address _stablecoin,
         uint256 _amount
+    ) external;
+
+    function delegateDeposit(
+        string memory _policyTokenName,
+        address _stablecoin,
+        uint256 _amount,
+        address _userAddress
     ) external;
 
     function redeem(

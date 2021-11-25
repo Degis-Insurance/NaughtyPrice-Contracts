@@ -1,5 +1,5 @@
-const tokenAddress = "0xaA723736738cabA6c1B4DF30325785D1D7805017";
-const pairAddress = "0x4fd9E48afE3D0dfe4914E4a5f625bEb0d5F207fa";
+const tokenAddress = "0x4670C32cB6557004AF0993765B01b788282B32ce";
+const pairAddress = "0xE6C4945d78736dAD3e2B13C69f872d541E743f1B";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -38,22 +38,27 @@ module.exports = async (callback) => {
     let date = new Date().getTime();
     date = parseInt(date / 1000);
 
-    await policy.approve(router.address, web3.utils.toWei("20000", "ether"), {
+    await policy.approve(router.address, web3.utils.toWei("200", "ether"), {
       from: mainAccount,
     });
 
-    await usdt.approve(router.address, web3.utils.toWei("20000", "ether"), {
+    await usdt.approve(router.address, web3.utils.toWei("200", "ether"), {
       from: mainAccount,
     });
 
     const pair = await NaughtyPair.at(pairAddress);
     const tx1 = await pair.getReserves();
 
-    console.log(parseInt(tx1[0]) / 1e18, parseInt(tx1[1]) / 1e18);
+    console.log(
+      "Reserve0",
+      parseInt(tx1[0]) / 1e18,
+      "Reserve1:",
+      parseInt(tx1[1]) / 1e18
+    );
 
     await pair.sync({ from: mainAccount });
 
-    // 用最多21个policy token 换10个usdt出来
+    // 用最多20个policy token 换10个usdt出来
     const tx = await router.swapTokensforExactTokens(
       web3.utils.toWei("20", "ether"),
       web3.utils.toWei("10", "ether"),
@@ -77,7 +82,12 @@ module.exports = async (callback) => {
 
     const tx2 = await pair.getReserves();
 
-    console.log(parseInt(tx2[0]) / 1e18, parseInt(tx2[1]) / 1e18);
+    console.log(
+      "Reserve0:",
+      parseInt(tx2[0]) / 1e18,
+      "Reserve1:",
+      parseInt(tx2[1]) / 1e18
+    );
 
     callback(true);
   } catch (err) {

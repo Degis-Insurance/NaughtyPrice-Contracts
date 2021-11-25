@@ -59,6 +59,8 @@ contract PolicyCore is IPolicyCore {
     // Policy toke name => Policy token information
     mapping(string => PolicyTokenInfo) policyTokenInfoMapping;
 
+    mapping(address => string) policyTokenAddressToName;
+
     // Policy token name list
     string[] allPolicyTokens;
 
@@ -215,6 +217,19 @@ contract PolicyCore is IPolicyCore {
     }
 
     /**
+     * @notice Find the token name by its address
+     * @param _policyTokenAddress Address of the policy token
+     * @return policyTokenName Name of the policy token
+     */
+    function findNamebyAddress(address _policyTokenAddress)
+        external
+        view
+        returns (string memory)
+    {
+        return policyTokenAddressToName[_policyTokenAddress];
+    }
+
+    /**
      * @notice Find the token information by its name
      * @param _policyTokenName Name of the policy token (e.g. "AVAX30L202103")
      * @return policyTokenInfo PolicyToken detail information
@@ -322,6 +337,9 @@ contract PolicyCore is IPolicyCore {
         // Keep the record from policy token to original token
         policyTokenToOriginal[policyTokenAddress] = _tokenAddress;
 
+        // Record the address to name mapping
+        policyTokenAddressToName[policyTokenAddress] = _policyTokenName;
+
         // You can not get the return value from outside, but keep it here.
         return policyTokenAddress;
     }
@@ -385,7 +403,43 @@ contract PolicyCore is IPolicyCore {
             "User's stablecoin balance not sufficient"
         );
 
-        _mintPolicyToken(policyTokenAddress, _stablecoin, _amount);
+        _mintPolicyToken(policyTokenAddress, _stablecoin, _amount, msg.sender);
+    }
+
+    /**
+     * @notice Delegate deposit (deposit and mint for other addresses)
+     * @param _policyTokenName Name of the policy token
+     * @param _stablecoin Address of the sable coin
+     * @param _amount Amount of stablecoin (also the amount of policy tokens)
+     * @param _userAddress Address to receive the policy tokens
+     */
+    function delegateDeposit(
+        string memory _policyTokenName,
+        address _stablecoin,
+        uint256 _amount,
+        address _userAddress
+    ) external beforeDeadline(_policyTokenName) {
+        address policyTokenAddress = policyTokenInfoMapping[_policyTokenName]
+            .policyTokenAddress;
+
+        // Check if the user gives the right stablecoin
+        require(
+            whichStablecoin[policyTokenAddress] == _stablecoin,
+            "PolicyToken and stablecoin not matched"
+        );
+
+        // Check if the user has enough balance
+        require(
+            IERC20(_stablecoin).balanceOf(_userAddress) >= _amount,
+            "User's stablecoin balance not sufficient"
+        );
+
+        _mintPolicyToken(
+            policyTokenAddress,
+            _stablecoin,
+            _amount,
+            _userAddress
+        );
     }
 
     /**
@@ -583,27 +637,28 @@ contract PolicyCore is IPolicyCore {
     function _mintPolicyToken(
         address _policyTokenAddress,
         address _stablecoin,
-        uint256 _amount
+        uint256 _amount,
+        address _userAddress
     ) internal {
         IPolicyToken policyToken = IPolicyToken(_policyTokenAddress);
 
         // Transfer stablecoins to this contract
         IERC20(_stablecoin).safeTransferFrom(
-            msg.sender,
+            _userAddress,
             address(this),
             _amount
         );
 
         // Mint new policy tokens
-        policyToken.mint(msg.sender, _amount);
+        policyToken.mint(_userAddress, _amount);
 
         // If this is the first deposit, store the user address
-        if (userQuota[msg.sender][_policyTokenAddress] == 0) {
-            allDepositors[_policyTokenAddress].push(msg.sender);
+        if (userQuota[_userAddress][_policyTokenAddress] == 0) {
+            allDepositors[_policyTokenAddress].push(_userAddress);
         }
 
         // Update the user quota
-        userQuota[msg.sender][_policyTokenAddress] += _amount;
+        userQuota[_userAddress][_policyTokenAddress] += _amount;
     }
 
     /**

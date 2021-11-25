@@ -29,8 +29,8 @@ module.exports = async (callback) => {
       testAddress,
       false,
       web3.utils.toWei("30", "ether"),
-      now + 3000,
-      now + 3600,
+      now + 5000,
+      now + 5600,
       {
         from: mainAccount,
       }
@@ -38,10 +38,13 @@ module.exports = async (callback) => {
 
     console.log("new deployed policy token:", policyTokenAddress);
 
-    const ad = await core.findAddressbyName(tokenName, {
+    const address = await core.findAddressbyName(tokenName, {
       from: mainAccount,
     });
-    console.log("policy token address in core:", ad);
+    console.log("policy token address in core:", address);
+
+    const name = await core.findNamebyAddress(address, { from: mainAccount });
+    console.log("policy token name in core:", name);
 
     const info = await core.getPolicyTokenInfo(tokenName, {
       from: mainAccount,

@@ -50,6 +50,11 @@ contract NaughtyPair is PoolLPToken {
         unlocked = true;
     }
 
+    modifier beforeDeadline() {
+        require(block.timestamp <= deadline, "Can not swap after deadline");
+        _;
+    }
+
     /**
      * @notice Initialize the contract status after the deployment by factory
      * @param _token0 Token0 address
@@ -197,7 +202,7 @@ contract NaughtyPair is PoolLPToken {
         uint256 _amount0Out,
         uint256 _amount1Out,
         address _to
-    ) external lock {
+    ) external beforeDeadline lock {
         require(
             _amount0Out > 0 || _amount1Out > 0,
             "Output amount need to be >0"

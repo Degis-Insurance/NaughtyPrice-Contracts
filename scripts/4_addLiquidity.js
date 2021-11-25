@@ -1,5 +1,5 @@
-const tokenAddress = "0xaA723736738cabA6c1B4DF30325785D1D7805017";
-const pairAddress = "0x4fd9E48afE3D0dfe4914E4a5f625bEb0d5F207fa";
+const tokenAddress = "0x4670C32cB6557004AF0993765B01b788282B32ce";
+const pairAddress = "0xE6C4945d78736dAD3e2B13C69f872d541E743f1B";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -26,11 +26,15 @@ module.exports = async (callback) => {
     const policy = await PolicyToken.at(tokenAddress);
 
     // 添加20-20的流动性
-    await policy.approve(router.address, web3.utils.toWei("40", "ether"), {
+    await policy.approve(router.address, web3.utils.toWei("400", "ether"), {
       from: mainAccount,
     });
 
-    await usdt.approve(router.address, web3.utils.toWei("40", "ether"), {
+    await usdt.approve(router.address, web3.utils.toWei("400", "ether"), {
+      from: mainAccount,
+    });
+
+    await usdt.approve(core.address, web3.utils.toWei("400", "ether"), {
       from: mainAccount,
     });
 
@@ -40,11 +44,12 @@ module.exports = async (callback) => {
 
     await router.setPolicyCore(core.address, { from: mainAccount });
 
+    // Add liquidity
     const tx = await router.addLiquidity(
       tokenAddress,
       usdt.address,
-      web3.utils.toWei("40", "ether"),
-      web3.utils.toWei("40", "ether"),
+      web3.utils.toWei("20", "ether"),
+      web3.utils.toWei("20", "ether"),
       web3.utils.toWei("10", "ether"),
       web3.utils.toWei("10", "ether"),
       mainAccount,
@@ -53,10 +58,53 @@ module.exports = async (callback) => {
     );
     console.log(tx.tx);
 
+    // Add liquidity only with stablecoin
+    const deletx = await router.addLiquidityWithUSD(
+      tokenAddress,
+      usdt.address,
+      web3.utils.toWei("20", "ether"),
+      mainAccount,
+      80,
+      date + 6000,
+      { from: mainAccount }
+    );
+    console.log(deletx.tx);
+
     const pair = await NaughtyPair.at(pairAddress);
     const tx2 = await pair.getReserves();
 
-    console.log(parseInt(tx2[0]) / 1e18, parseInt(tx2[1] / 1e18));
+    console.log(
+      "Reserve0:",
+      parseInt(tx2[0]) / 1e18,
+      "Reserve1:",
+      parseInt(tx2[1] / 1e18)
+    );
+
+    const lptoken = await pair.balanceOf(mainAccount, { from: mainAccount });
+    console.log("user lp token balanceL:", parseInt(lptoken / 1e18));
+
+    await pair.approve(router.address, web3.utils.toWei("500", "ether"), {
+      from: mainAccount,
+    });
+
+    const removetx = await router.removeLiquidity(
+      tokenAddress,
+      usdt.address,
+      web3.utils.toWei("20", "ether"),
+      web3.utils.toWei("10", "ether"),
+      web3.utils.toWei("10", "ether"),
+      mainAccount,
+      date + 6000,
+      { from: mainAccount }
+    );
+
+    const tx3 = await pair.getReserves();
+    console.log(
+      "Reserve0:",
+      parseInt(tx3[0]) / 1e18,
+      "Reserve1:",
+      parseInt(tx3[1] / 1e18)
+    );
 
     callback(true);
   } catch (err) {

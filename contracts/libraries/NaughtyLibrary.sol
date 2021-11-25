@@ -122,4 +122,24 @@ library NaughtyLibrary {
     {
         return IPolicyCore(policyCore).isStablecoinAddress(_coinAddress);
     }
+
+    /**
+     * @notice Used when users only provide stablecoins and want to mint & add liquidity in one step
+     */
+    function mintPolicyTokensForUser(
+        address policyCore,
+        address _policyTokenAddress,
+        address _stablecoin,
+        uint256 _amount,
+        address _userAddress
+    ) public {
+        string memory policyTokenName = IPolicyCore(policyCore)
+            .findNamebyAddress(_policyTokenAddress);
+        IPolicyCore(policyCore).delegateDeposit(
+            policyTokenName,
+            _stablecoin,
+            _amount,
+            _userAddress
+        );
+    }
 }

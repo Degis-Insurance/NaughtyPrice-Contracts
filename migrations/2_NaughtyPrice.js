@@ -19,8 +19,10 @@ const fs = require("fs");
  *              PolicyCore(for core logic of NaughtyPrice)
  *
  */
-module.exports = async function (deployer) {
-  // await deployer.deploy(USDT);
+module.exports = async function (deployer, network) {
+  if (network.startsWith("development")) {
+    await deployer.deploy(USDT);
+  }
 
   await deployer.deploy(PriceGetter);
 
@@ -29,28 +31,38 @@ module.exports = async function (deployer) {
   await deployer.deploy(NaughtyLibrary);
   await deployer.link(NaughtyLibrary, NaughtyRouter);
   await deployer.deploy(NaughtyRouter, NaughtyFactory.address, buyerToken);
+  if (network.startsWith("rinkeby")) {
+    await deployer.deploy(
+      PolicyCore,
+      usd_rinkeby,
+      NaughtyFactory.address,
+      PriceGetter.address
+    );
+  } else if (network.startsWith("development")) {
+    await deployer.deploy(
+      PolicyCore,
+      USDT.address,
+      NaughtyFactory.address,
+      PriceGetter.address
+    );
+  }
 
-  await deployer.deploy(
-    PolicyCore,
-    usd_rinkeby,
-    NaughtyFactory.address,
-    PriceGetter.address
-  );
+  if (network.startsWith("rinkeby")) {
+    const addressList = {
+      PriceGetter: PriceGetter.address,
+      NaughtyFactory: NaughtyFactory.address,
+      NaughtyRouter: NaughtyRouter.address,
+      PolicyCore: PolicyCore.address,
+    };
 
-  const addressList = {
-    PriceGetter: PriceGetter.address,
-    NaughtyFactory: NaughtyFactory.address,
-    NaughtyRouter: NaughtyRouter.address,
-    PolicyCore: PolicyCore.address,
-  };
+    const data = JSON.stringify(addressList, null, "\t");
 
-  const data = JSON.stringify(addressList);
-
-  fs.writeFile("address.json", data, (err) => {
-    if (err) {
-      throw err;
-    }
-  });
+    fs.writeFile("address.json", data, (err) => {
+      if (err) {
+        throw err;
+      }
+    });
+  }
 
   // await deployer.deploy(
   //   NaughtyProxy,

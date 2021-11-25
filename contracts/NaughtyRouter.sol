@@ -22,8 +22,6 @@ contract NaughtyRouter {
 
     address public owner;
 
-    mapping(address => mapping(uint256 => uint256)) userQuota;
-
     constructor(address _factory, address _buyerToken) {
         owner = msg.sender;
 
@@ -73,15 +71,73 @@ contract NaughtyRouter {
     }
 
     // ---------------------------------------------------------------------------------------- //
+    // *********************************** Helper Functions *********************************** //
+    // ---------------------------------------------------------------------------------------- //
+
+    /**
+     * @notice Add liquidity but only provide stablecoins
+     * @param _tokenA Address of policyToken
+     * @param _tokenB Address of stablecoin
+     * @param _amountUSD Amount of stablecoins provided
+     * @param _to Address that receive the lp token, normally the user himself
+     * @param _minRatio Minimum ratio (divided by 100)(amountMin / amountDesired)
+     * @param _deadline Transaction will revert after this deadline
+     */
+    function addLiquidityWithUSD(
+        address _tokenA,
+        address _tokenB,
+        uint256 _amountUSD,
+        address _to,
+        uint256 _minRatio,
+        uint256 _deadline
+    ) external beforeDeadline(_deadline) {
+        require(_minRatio <= 100, "Minimum ratio can not exceed 100");
+
+        bool isStablecoin = NaughtyLibrary.checkStablecoin(policyCore, _tokenB);
+        require(isStablecoin, "please put stablecoin as tokenB parameter");
+
+        (uint256 reserveA, uint256 reserveB) = NaughtyLibrary.getReserves(
+            factory,
+            _tokenA,
+            _tokenB
+        );
+
+        uint256 _amountADesired = (_amountUSD * reserveA) /
+            (reserveA + reserveB);
+        uint256 _amountBDesired = (_amountUSD * reserveB) /
+            (reserveA + reserveB);
+
+        // Mint _amountADesired policy tokens for users
+        NaughtyLibrary.mintPolicyTokensForUser(
+            policyCore,
+            _tokenA,
+            _tokenB,
+            _amountADesired,
+            msg.sender
+        );
+
+        addLiquidity(
+            _tokenA,
+            _tokenB,
+            _amountADesired,
+            _amountBDesired,
+            (_amountADesired * _minRatio) / 100,
+            (_amountBDesired * _minRatio) / 100,
+            _to,
+            _deadline
+        );
+    }
+
+    // ---------------------------------------------------------------------------------------- //
     // ************************************ Main Functions ************************************ //
     // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Add liquidity function
      * @param _tokenA Address of policyToken
-     * @param _tokenB Address of USDT
+     * @param _tokenB Address of stablecoin
      * @param _amountADesired Amount of policyToken desired
-     * @param _amountBDesired Amount of USDT desired
+     * @param _amountBDesired Amount of stablecoin desired
      * @param _amountAMin Minimum amoutn of policy token
      * @param _amountBMin Minimum amount of stablecoin
      * @param _to Address that receive the lp token, normally the user himself
@@ -100,7 +156,7 @@ contract NaughtyRouter {
         address _to,
         uint256 _deadline
     )
-        external
+        public
         beforeDeadline(_deadline)
         returns (
             uint256 amountA,
@@ -129,8 +185,8 @@ contract NaughtyRouter {
 
     /**
      * @notice Remove liquidity from the pool
-     * @param _tokenA Address of tokenA
-     * @param _tokenB Address of tokenB
+     * @param _tokenA Address of policy token
+     * @param _tokenB Address of stablecoin
      * @param _liquidity The lptoken amount to be removed
      * @param _amountAMin Minimum amount of tokenA given out
      * @param _amountBMin Minimum amount of tokenB given out

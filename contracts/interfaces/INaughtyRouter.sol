@@ -24,6 +24,15 @@ interface INaughtyRouter {
             uint256 liquidity
         );
 
+    function addLiquidiyWithUSD(
+        address _tokenA,
+        address _tokenB,
+        uint256 _amountUSD,
+        address _to,
+        uint256 _minRatio,
+        uint256 _deadline
+    ) external;
+
     /**
      * @notice Remove liquidity from the pool
      * @param _tokenA: Insurance token address

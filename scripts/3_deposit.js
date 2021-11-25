@@ -21,7 +21,7 @@ module.exports = async (callback) => {
     const balance = await usdt.balanceOf(mainAccount);
     console.log("user balance:", parseInt(balance) / 1e18);
 
-    await usdt.approve(core.address, web3.utils.toWei("100", "ether"), {
+    await usdt.approve(core.address, web3.utils.toWei("200", "ether"), {
       from: mainAccount,
     });
 
@@ -33,6 +33,15 @@ module.exports = async (callback) => {
       { from: mainAccount }
     );
     console.log(deposit_tx.tx);
+
+    const delegate_deposit = await core.delegateDeposit(
+      tokenName,
+      usdt.address,
+      web3.utils.toWei("100", "ether"),
+      mainAccount,
+      { from: mainAccount }
+    );
+    console.log(delegate_deposit.tx);
 
     // 取回20usd
     const redeem_tx = await core.redeem(

@@ -17,10 +17,12 @@ module.exports = async (callback) => {
     const core = await PolicyCore.deployed();
     console.log(core.address);
 
+    await core.addStablecoin(usdt.address, { from: mainAccount });
+
     let now = new Date().getTime();
     now = parseInt(now / 1000);
 
-    const tx = await core.deployPool(tokenName, usdt.address, now + 500, {
+    const tx = await core.deployPool(tokenName, usdt.address, now + 5000, {
       from: mainAccount,
     });
     console.log(tx.tx);
@@ -32,7 +34,7 @@ module.exports = async (callback) => {
     const pairAddress = await factory.getPairAddress(ad, usdt.address, {
       from: mainAccount,
     });
-    console.log("AVAX30-202102-usdt Pair address:", pairAddress);
+    console.log("Pair address:", pairAddress);
 
     callback(true);
   } catch (err) {
