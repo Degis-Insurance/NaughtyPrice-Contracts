@@ -49,13 +49,6 @@ contract PolicyCore is IPolicyCore {
     // Current distribution index
     uint256 public currentDistributionIndex;
 
-    struct PolicyTokenInfo {
-        address policyTokenAddress;
-        bool isCall;
-        uint256 strikePrice;
-        uint256 deadline;
-        uint256 settleTimestamp;
-    }
     // Policy toke name => Policy token information
     mapping(string => PolicyTokenInfo) policyTokenInfoMapping;
 

@@ -2,6 +2,14 @@
 pragma solidity 0.8.9;
 
 interface IPolicyCore {
+    struct PolicyTokenInfo {
+        address policyTokenAddress;
+        bool isCall;
+        uint256 strikePrice;
+        uint256 deadline;
+        uint256 settleTimestamp;
+    }
+
     event SettleFinalResult(
         string _policyTokenName,
         int256 price,
@@ -25,10 +33,24 @@ interface IPolicyCore {
         view
         returns (string memory);
 
+    function getPolicyTokenInfo(string memory _policyTokenName)
+        external
+        view
+        returns (PolicyTokenInfo memory);
+
+    function getAllTokens() external view returns (PolicyTokenInfo[] memory);
+
+    function checkUserQuota(address _userAddress, address _policyTokenAddress)
+        external
+        view
+        returns (uint256 _quota);
+
     function isStablecoinAddress(address _coinAddress)
         external
         view
         returns (bool);
+
+    function addStablecoin(address _newStablecoin) external;
 
     function deployPolicyToken(
         string memory _policyTokenName,
