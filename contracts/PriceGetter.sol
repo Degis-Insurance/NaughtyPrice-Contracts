@@ -4,6 +4,11 @@ pragma solidity 0.8.9;
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "./interfaces/IPriceGetter.sol";
 
+/**
+ * @title  Price Getter
+ * @notice This is the contract for getting price feed from chainlink.
+ *         The contract will keep a record from tokenName => priceFeed Address.
+ */
 contract PriceGetter is IPriceGetter {
     // Use token name (string) as the mapping key
     mapping(string => AggregatorV3Interface) internal priceFeed;
@@ -44,16 +49,26 @@ contract PriceGetter is IPriceGetter {
         owner = msg.sender;
     }
 
+    /**
+     * @notice Only the owner can call this function
+     */
     modifier onlyOwner() {
         require(msg.sender == owner, "Only the owner can call this function");
         _;
     }
 
+    /**
+     * @notice Can not give zero address
+     */
     modifier notZeroAddress(address _address) {
         require(_address != address(0), "can not give zero address");
         _;
     }
 
+    /**
+     * @notice Get the price feed address of a token
+     * @param _tokenName Name of the strike token
+     */
     function getPriceFeedAddress(string memory _tokenName)
         public
         view
@@ -64,8 +79,8 @@ contract PriceGetter is IPriceGetter {
 
     /**
      * @notice Set a price feed oracle address for a token
-     * @param _tokenName: Address of the token
-     * @param _feedAddress: Price feed oracle address
+     * @param _tokenName Address of the token
+     * @param _feedAddress Price feed oracle address
      */
     function setPriceFeed(string memory _tokenName, address _feedAddress)
         public
@@ -80,7 +95,8 @@ contract PriceGetter is IPriceGetter {
 
     /**
      * @notice Get latest price of a token
-     * @param _tokenName: Address of the token
+     * @param _tokenName Address of the token
+     * @return price The latest price
      */
     function getLatestPrice(string memory _tokenName) public returns (int256) {
         (

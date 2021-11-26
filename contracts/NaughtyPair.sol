@@ -6,8 +6,9 @@ import "prb-math/contracts/PRBMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/INaughtyFactory.sol";
+import "./interfaces/INaughtyPair.sol";
 
-contract NaughtyPair is PoolLPToken {
+contract NaughtyPair is PoolLPToken, INaughtyPair {
     using SafeERC20 for IERC20;
 
     address public factory; // Factory contract address
@@ -26,16 +27,6 @@ contract NaughtyPair is PoolLPToken {
 
     // uint256 public kLast;
 
-    event ReserveUpdated(uint256 reserve0, uint256 reserve1);
-    event Swap(
-        address indexed sender,
-        uint256 amount0In,
-        uint256 amount1In,
-        uint256 amount0Out,
-        uint256 amount1Out,
-        address indexed to
-    );
-
     constructor() {
         factory = msg.sender; // deployed by factory contract
     }
@@ -50,10 +41,18 @@ contract NaughtyPair is PoolLPToken {
         unlocked = true;
     }
 
+    /**
+     * @notice Can not swap after the deadline
+     * @dev Each pool will have a deadline and it was set when deployed
+     */
     modifier beforeDeadline() {
         require(block.timestamp <= deadline, "Can not swap after deadline");
         _;
     }
+
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************ Init Functions ************************************ //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Initialize the contract status after the deployment by factory
@@ -76,6 +75,10 @@ contract NaughtyPair is PoolLPToken {
         deadline = _deadline; // deadline for the whole pool after which no swap will be allowed
     }
 
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************ View Functions ************************************ //
+    // ---------------------------------------------------------------------------------------- //
+
     /**
      * @notice Get reserve0 (Policy token) and reserve1 (stablecoin).
      * @return _reserve0 Reserve of token0
@@ -89,6 +92,10 @@ contract NaughtyPair is PoolLPToken {
         _reserve0 = reserve0;
         _reserve1 = reserve1;
     }
+
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************ Main Functions ************************************ //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Mint LP Token to liquidity providers
@@ -121,6 +128,8 @@ contract NaughtyPair is PoolLPToken {
         LPMint(to, liquidity);
 
         _update(balance0, balance1);
+
+        emit Mint(msg.sender, amount0, amount1);
 
         // if (feeOn) kLast = uint256(reserve0 * reserve1);
     }
@@ -189,6 +198,8 @@ contract NaughtyPair is PoolLPToken {
 
         _update(balance0, balance1);
 
+        emit Burn(msg.sender, amount0, amount1, _to);
+
         // if (feeOn) kLast = uint256(reserve0 * reserve1);
     }
 
@@ -248,6 +259,7 @@ contract NaughtyPair is PoolLPToken {
         }
 
         _update(balance0, balance1);
+
         emit Swap(
             msg.sender,
             amount0In,
@@ -257,6 +269,10 @@ contract NaughtyPair is PoolLPToken {
             _to
         );
     }
+
+    // ---------------------------------------------------------------------------------------- //
+    // ********************************** Internal Functions ********************************** //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Update the reserves of the pool

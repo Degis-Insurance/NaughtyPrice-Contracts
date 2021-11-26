@@ -10,6 +10,7 @@ import "./interfaces/IPolicyToken.sol";
  * @title  NaughtyRouter
  * @notice Router for the pool, you can add/remove liquidity or swap A for B.
  *         Swapping fee rate is 2% and all of them are given to LP.
+ *
  */
 contract NaughtyRouter {
     using SafeERC20 for IERC20;

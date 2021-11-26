@@ -2,6 +2,11 @@
 pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+/**
+ * @title  Pool LP Token
+ * @notice PoolToken is the lp token for naughtyPair
+ *         The address is the same as the pair address
+ */
 contract PoolLPToken is ERC20("Naughty Pool LP", "NLP") {
     function LPMint(address _account, uint256 _amount) public {
         _mint(_account, _amount);
