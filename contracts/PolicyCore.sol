@@ -328,7 +328,7 @@ contract PolicyCore is IPolicyCore {
         policyTokenInfoMapping[policyTokenName] = PolicyTokenInfo(
             policyTokenAddress,
             _isCall,
-            _strikePrice,
+            _strikePrice / 1e18,
             _deadline,
             _settleTimestamp
         );
@@ -752,13 +752,14 @@ contract PolicyCore is IPolicyCore {
         uint256 _strikePrice,
         bool _isCall,
         uint256 _round
-    ) internal returns (string memory) {
+    ) internal pure returns (string memory) {
         string memory call = _isCall ? "H" : "L";
+        uint256 _price = _strikePrice / 1e18;
         string memory name = string(
             abi.encodePacked(
                 _tokenName,
                 "_",
-                _strikePrice.toString(),
+                _price.toString(),
                 "_",
                 call,
                 "_",

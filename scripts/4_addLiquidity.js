@@ -42,8 +42,6 @@ module.exports = async (callback) => {
     date = parseInt(date / 1000);
     console.log("now:", date);
 
-    await router.setPolicyCore(core.address, { from: mainAccount });
-
     // Add liquidity
     const tx = await router.addLiquidity(
       tokenAddress,
