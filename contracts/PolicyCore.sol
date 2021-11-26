@@ -3,6 +3,7 @@ pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "./libraries/NaughtyLibrary.sol";
 import "./interfaces/IPolicyToken.sol";
 import "./interfaces/INaughtyFactory.sol";
@@ -33,6 +34,7 @@ import "./interfaces/IPolicyCore.sol";
  */
 contract PolicyCore is IPolicyCore {
     using SafeERC20 for IERC20;
+    using Strings for uint256;
 
     // Factory contract, responsible for deploying new contracts
     INaughtyFactory public factory;
@@ -64,7 +66,7 @@ contract PolicyCore is IPolicyCore {
     mapping(address => address) whichStablecoin;
 
     // PolicyToken => Strike Token (e.g. AVAX30L202101 address => AVAX address)
-    mapping(address => address) policyTokenToOriginal;
+    mapping(address => string) policyTokenToOriginal;
 
     // User Address => Token Address => User Quota Amount
     mapping(address => mapping(address => uint256)) userQuota;
@@ -297,8 +299,8 @@ contract PolicyCore is IPolicyCore {
     /**
      * @notice Deploy a new policy token and return the token address
      * @dev Only the owner can deploy new policy token
-     * @param _policyTokenName Token name of policy token (e.g. "AVAX30L202101")
-     * @param _tokenAddress Address of the original token (e.g. AVAX, BTC, ETH...)
+     *      The name form is like "AVAX_50_L_202101" and is built inside the contract.
+     * @param _tokenName Name of the original token (e.g. AVAX, BTC, ETH...)
      * @param _isCall The policy is for higher or lower than the strike price (call / put)
      * @param _strikePrice Strike price of the policy
      * @param _deadline Deadline of this policy token (deposit / redeem / swap)
@@ -306,20 +308,24 @@ contract PolicyCore is IPolicyCore {
      * @return policyTokenAddress The address of the policy token just deployed
      */
     function deployPolicyToken(
-        string memory _policyTokenName,
-        address _tokenAddress,
+        string memory _tokenName,
         bool _isCall,
         uint256 _strikePrice,
+        uint256 _round,
         uint256 _deadline,
         uint256 _settleTimestamp
     ) public onlyOwner returns (address) {
-        // Deploy a new policy token by the factory contract
-        address policyTokenAddress = factory.deployPolicyToken(
-            _policyTokenName
+        string memory policyTokenName = _generateName(
+            _tokenName,
+            _strikePrice,
+            _isCall,
+            _round
         );
+        // Deploy a new policy token by the factory contract
+        address policyTokenAddress = factory.deployPolicyToken(policyTokenName);
 
         // Store the policyToken information in the mapping
-        policyTokenInfoMapping[_policyTokenName] = PolicyTokenInfo(
+        policyTokenInfoMapping[policyTokenName] = PolicyTokenInfo(
             policyTokenAddress,
             _isCall,
             _strikePrice,
@@ -328,12 +334,13 @@ contract PolicyCore is IPolicyCore {
         );
 
         // Keep the record from policy token to original token
-        policyTokenToOriginal[policyTokenAddress] = _tokenAddress;
+        policyTokenToOriginal[policyTokenAddress] = _tokenName;
 
         // Record the address to name mapping
-        policyTokenAddressToName[policyTokenAddress] = _policyTokenName;
+        policyTokenAddressToName[policyTokenAddress] = policyTokenName;
 
-        allPolicyTokens.push(_policyTokenName);
+        // Push the policytokenName into the list
+        allPolicyTokens.push(policyTokenName);
 
         // You can not get the return value from outside, but keep it here.
         return policyTokenAddress;
@@ -505,8 +512,11 @@ contract PolicyCore is IPolicyCore {
         afterSettlement(_policyTokenName)
         notAlreadySettled(_policyTokenName)
     {
-        address policyTokenAddress = policyTokenInfoMapping[_policyTokenName]
-            .policyTokenAddress;
+        PolicyTokenInfo memory policyTokenInfo = policyTokenInfoMapping[
+            _policyTokenName
+        ];
+
+        address policyTokenAddress = policyTokenInfo.policyTokenAddress;
         require(
             policyTokenAddress != address(0),
             "This policy token does not exist, maybe you input a wrong name"
@@ -515,28 +525,26 @@ contract PolicyCore is IPolicyCore {
         SettlementInfo storage result = settleResult[policyTokenAddress];
 
         // Get the final price from oracle
+        string memory originalTokenName = policyTokenToOriginal[
+            policyTokenAddress
+        ];
         int256 price = IPriceGetter(priceGetter).getLatestPrice(
-            _policyTokenName
+            originalTokenName
         );
-        require(price > 0, "Price can not be <= 0");
+        require(price > 0, "Settle failed, price can not be <= 0");
         result.price = price;
 
         // Get the final result
-        uint256 strike = policyTokenInfoMapping[_policyTokenName].strikePrice;
-        bool isCall = policyTokenInfoMapping[_policyTokenName].isCall;
+        bool situationT1 = (uint256(price) >= policyTokenInfo.strikePrice) &&
+            policyTokenInfo.isCall;
+        bool situationT2 = (uint256(price) <= policyTokenInfo.strikePrice) &&
+            !policyTokenInfo.isCall;
 
-        bool situationT1 = (uint256(price) >= strike) && isCall;
-        bool situationT2 = (uint256(price) <= strike) && !isCall;
-
-        if (situationT1 || situationT2) {
-            result.isHappened = true;
-        } else {
-            result.isHappened = false;
-        }
+        result.isHappened = (situationT1 || situationT2) ? true : false;
 
         result.alreadySettled = true;
 
-        emit SettleFinalResult(_policyTokenName, price, result.isHappened);
+        emit FinalResultSettled(_policyTokenName, price, result.isHappened);
     }
 
     /**
@@ -596,6 +604,10 @@ contract PolicyCore is IPolicyCore {
         }
     }
 
+    // ---------------------------------------------------------------------------------------- //
+    // *********************************** Internal Functions ********************************* //
+    // ---------------------------------------------------------------------------------------- //
+
     /**
      * @notice Finish settlement process
      * @param _policyTokenAddress Address of the policy token
@@ -617,10 +629,6 @@ contract PolicyCore is IPolicyCore {
 
         emit FinishSettlementPolicies(_policyTokenAddress, _stablecoin);
     }
-
-    // ---------------------------------------------------------------------------------------- //
-    // *********************************** Internal Functions ********************************* //
-    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Mint Policy Token 1:1 USD
@@ -730,5 +738,33 @@ contract PolicyCore is IPolicyCore {
                 delete userQuota[user][_policyTokenAddress];
             } else continue;
         }
+    }
+
+    /**
+     * @notice Generate the policy token name
+     * @param _tokenName Name of the token
+     * @param _strikePrice Strike price of the policy
+     * @param _isCall The policy is higher or lower
+     * @param _round Round of the policy (e.g. 202101)
+     */
+    function _generateName(
+        string memory _tokenName,
+        uint256 _strikePrice,
+        bool _isCall,
+        uint256 _round
+    ) internal returns (string memory) {
+        string memory call = _isCall ? "H" : "L";
+        string memory name = string(
+            abi.encodePacked(
+                _tokenName,
+                "_",
+                _strikePrice.toString(),
+                "_",
+                call,
+                "_",
+                _round.toString()
+            )
+        );
+        return name;
     }
 }

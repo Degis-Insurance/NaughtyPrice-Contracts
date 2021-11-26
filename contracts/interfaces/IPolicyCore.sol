@@ -10,7 +10,7 @@ interface IPolicyCore {
         uint256 settleTimestamp;
     }
 
-    event SettleFinalResult(
+    event FinalResultSettled(
         string _policyTokenName,
         int256 price,
         bool isHappened
@@ -23,16 +23,25 @@ interface IPolicyCore {
         address _stablecoin
     );
 
+    /**
+     * @notice Find the address by its name
+     */
     function findAddressbyName(string memory _policyTokenName)
         external
         view
         returns (address _policyTokenAddress);
 
+    /**
+     * @notice Find the name by address
+     */
     function findNamebyAddress(address _policyTokenAddress)
         external
         view
         returns (string memory);
 
+    /**
+     * @notice Get the policy token information
+     */
     function getPolicyTokenInfo(string memory _policyTokenName)
         external
         view
@@ -54,10 +63,10 @@ interface IPolicyCore {
 
     function deployPolicyToken(
         string memory _policyTokenName,
-        address _tokenAddress,
         bool _isHigher,
         uint256 _strikePrice,
         uint256 _deadline,
+        uint256 _round,
         uint256 _settleTimestamp
     ) external returns (address);
 
