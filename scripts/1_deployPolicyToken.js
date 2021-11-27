@@ -1,7 +1,7 @@
 const tokenName = "BTC";
-const strikePrice = "30000";
+const strikePrice = "40000";
 const round = 202101;
-const policyTokenName = "BTC_30000_L_202101";
+const policyTokenName = "BTC_40000_L_202101";
 
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyFactory = artifacts.require("NaughtyFactory");

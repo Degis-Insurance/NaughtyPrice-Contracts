@@ -1,4 +1,4 @@
-const tokenName = "BTC_30000_L_202101";
+const tokenName = "BTC_40000_L_202101";
 
 const usd_address = "0x4379a39c8Bd46D651eC4bdA46C32E2725b217860";
 

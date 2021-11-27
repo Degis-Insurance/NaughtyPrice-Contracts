@@ -1,4 +1,5 @@
-const tokenName = "BTC100L202101";
+const tokenName = "BTC_40000_L_202101";
+const usd_address = "0x4379a39c8Bd46D651eC4bdA46C32E2725b217860";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -8,7 +9,7 @@ module.exports = async (callback) => {
   try {
     const accounts = await web3.eth.getAccounts();
     const mainAccount = accounts[0];
-    const usdt = await USDT.deployed();
+    const usdt = await USDT.at(usd_address);
 
     const factory = await NaughtyFactory.deployed();
     console.log(factory.address);
@@ -28,7 +29,7 @@ module.exports = async (callback) => {
     // 抵押100usd  铸造100 policy token
     const deposit_tx = await core.deposit(
       tokenName,
-      usdt.address,
+      usd_address,
       web3.utils.toWei("100", "ether"),
       { from: mainAccount }
     );
@@ -36,7 +37,7 @@ module.exports = async (callback) => {
 
     const delegate_deposit = await core.delegateDeposit(
       tokenName,
-      usdt.address,
+      usd_address,
       web3.utils.toWei("100", "ether"),
       mainAccount,
       { from: mainAccount }
