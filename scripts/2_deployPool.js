@@ -1,6 +1,6 @@
 const tokenName = "BTC_40000_L_202101";
 
-const usd_address = "0x4379a39c8Bd46D651eC4bdA46C32E2725b217860";
+const usd_address = "0x93424a368464763b244b761CBA4812D33B5e2f0b";
 
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyFactory = artifacts.require("NaughtyFactory");

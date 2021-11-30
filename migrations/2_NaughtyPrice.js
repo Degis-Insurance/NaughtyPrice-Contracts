@@ -5,11 +5,11 @@ const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyLibrary = artifacts.require("NaughtyLibrary");
 const PriceGetter = artifacts.require("PriceGetter");
 
-const degis = "0x77E4DC6B670B618dfE00fea8AD36d445a48D0181";
+const degis = "0x0C970444856f143728e791fbfC3b5f6AD7f417Dd";
 
-const buyerToken = "0x4F99CE3294E7e650CEBb8f94e6cD7C629C4f494D";
+const buyerToken = "0xA5186070ef5BFD5Ea84B7AaA11D380b759443959";
 
-const usd_rinkeby = "0x4379a39c8Bd46D651eC4bdA46C32E2725b217860";
+const usd_rinkeby = "0x93424a368464763b244b761CBA4812D33B5e2f0b";
 
 const fs = require("fs");
 /**

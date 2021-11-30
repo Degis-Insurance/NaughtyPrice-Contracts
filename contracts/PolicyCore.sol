@@ -45,6 +45,9 @@ contract PolicyCore is IPolicyCore {
     // Lottery address
     address public lottery;
 
+    // Emergency pool address
+    address public emergencyPool;
+
     // Owner address
     address public owner;
 
@@ -290,6 +293,14 @@ contract PolicyCore is IPolicyCore {
     function addStablecoin(address _newStablecoin) external onlyOwner {
         stablecoin[_newStablecoin] = true;
         emit NewStablecoinAdded(_newStablecoin);
+    }
+
+    function setLottery(address _lotteryAddress) external onlyOwner {
+        lottery = _lotteryAddress;
+    }
+
+    function setEmergencyPool(address _emergencyPool) external onlyOwner {
+        emergencyPool = _emergencyPool;
     }
 
     // ---------------------------------------------------------------------------------------- //
@@ -671,14 +682,18 @@ contract PolicyCore is IPolicyCore {
     {
         currentDistributionIndex = 0;
 
-        uint256 feeToLottery = IERC20(_stablecoin).balanceOf(address(this));
+        uint256 balanceRemain = IERC20(_stablecoin).balanceOf(address(this));
+
+        uint256 feeToLottery = (balanceRemain * 8) / 10;
+        uint256 feeToEmergency = balanceRemain - feeToLottery;
 
         require(
-            address(lottery) != address(0),
+            lottery != address(0) && emergencyPool != address(0),
             "Please set the lottery address"
         );
 
         IERC20(_stablecoin).safeTransfer(lottery, feeToLottery);
+        IERC20(_stablecoin).safeTransfer(emergencyPool, feeToEmergency);
 
         emit FinishSettlementPolicies(_policyTokenAddress, _stablecoin);
     }

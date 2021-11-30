@@ -61,6 +61,10 @@ interface IPolicyCore {
 
     function addStablecoin(address _newStablecoin) external;
 
+    function setLottery(address _lotteryAddress) external;
+
+    function setEmergencyPool(address _emergencyPool) external;
+
     function deployPolicyToken(
         string memory _policyTokenName,
         bool _isHigher,

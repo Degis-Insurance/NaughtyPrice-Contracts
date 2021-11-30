@@ -9,6 +9,8 @@ import "./interfaces/IPolicyToken.sol";
  *         It is a ERC20 token with an owner and a minter.
  *         The owner should be the deployer at first.
  *         The minter should be the policyCore contract.
+ * @dev    It is different from the flight delay token.
+ *         That is a ERC721 NFT and this is a ERC20 token.
  */
 contract PolicyToken is ERC20, IPolicyToken {
     address public owner;

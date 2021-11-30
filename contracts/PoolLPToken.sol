@@ -8,11 +8,11 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  *         The address is the same as the pair address
  */
 contract PoolLPToken is ERC20("Naughty Pool LP", "NLP") {
-    function LPMint(address _account, uint256 _amount) public {
+    function LPMint(address _account, uint256 _amount) internal {
         _mint(_account, _amount);
     }
 
-    function LPBurn(address _account, uint256 _amount) public {
+    function LPBurn(address _account, uint256 _amount) internal {
         _burn(_account, _amount);
     }
 
