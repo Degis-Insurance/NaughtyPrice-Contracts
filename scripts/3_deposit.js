@@ -1,5 +1,7 @@
 const tokenName = "BTC_40000_L_202101";
-const usd_address = "0x4379a39c8Bd46D651eC4bdA46C32E2725b217860";
+const usd_address = "0x93424a368464763b244b761CBA4812D33B5e2f0b";
+
+const policyTokenName = "BTC_40000_L_202101";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -52,6 +54,16 @@ module.exports = async (callback) => {
       { from: mainAccount }
     );
     console.log(redeem_tx.tx);
+
+    const address = await core.findAddressbyName(policyTokenName, {
+      from: mainAccount,
+    });
+    console.log("policy token address in core:", address);
+
+    const pairAddress = await factory.getPairAddress(address, usd_address, {
+      from: mainAccount,
+    });
+    console.log("Pair address:", pairAddress);
 
     callback(true);
   } catch (err) {

@@ -1,5 +1,6 @@
-const tokenAddress = "0x4670C32cB6557004AF0993765B01b788282B32ce";
-const pairAddress = "0xE6C4945d78736dAD3e2B13C69f872d541E743f1B";
+const tokenAddress = "0xAA552751aEF4DE9feEB4f875E7Ed3170D03C9c41";
+const pairAddress = "0x402b1096bF14eD442A132cb66057b451Bac24252";
+const usdAddress = "0x93424a368464763b244b761CBA4812D33B5e2f0b";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -12,7 +13,7 @@ module.exports = async (callback) => {
   try {
     const accounts = await web3.eth.getAccounts();
     const mainAccount = accounts[0];
-    const usdt = await USDT.deployed();
+    const usdt = await USDT.at(usdAddress);
 
     const factory = await NaughtyFactory.deployed();
     console.log("factory address", factory.address);
@@ -38,22 +39,23 @@ module.exports = async (callback) => {
     let date = new Date().getTime();
     date = parseInt(date / 1000);
 
-    await policy.approve(router.address, web3.utils.toWei("200", "ether"), {
+    await policy.approve(router.address, web3.utils.toWei("20000", "ether"), {
       from: mainAccount,
     });
 
-    await usdt.approve(router.address, web3.utils.toWei("200", "ether"), {
+    await usdt.approve(router.address, web3.utils.toWei("20000", "ether"), {
       from: mainAccount,
     });
 
     const pair = await NaughtyPair.at(pairAddress);
-    const tx1 = await pair.getReserves();
+
+    const reserve1 = await pair.getReserves();
 
     console.log(
       "Reserve0",
-      parseInt(tx1[0]) / 1e18,
+      parseInt(reserve1[0]) / 1e18,
       "Reserve1:",
-      parseInt(tx1[1]) / 1e18
+      parseInt(reserve1[1]) / 1e18
     );
 
     await pair.sync({ from: mainAccount });
@@ -80,13 +82,33 @@ module.exports = async (callback) => {
     console.log("usdt balance after:", parseInt(usdt_after) / 1e18);
     console.log("policy after:", parseInt(policy_after) / 1e18);
 
-    const tx2 = await pair.getReserves();
+    const reserve2 = await pair.getReserves();
 
     console.log(
       "Reserve0:",
-      parseInt(tx2[0]) / 1e18,
+      parseInt(reserve2[0]) / 1e18,
       "Reserve1:",
-      parseInt(tx2[1]) / 1e18
+      parseInt(reserve2[1]) / 1e18
+    );
+
+    const tx3 = await router.swapExactTokensforTokens(
+      web3.utils.toWei("10", "ether"),
+      web3.utils.toWei("2", "ether"),
+      usdt.address,
+      tokenAddress,
+      mainAccount,
+      date + 6000,
+      { from: mainAccount }
+    );
+    console.log(tx3.tx);
+
+    const reserve3 = await pair.getReserves();
+
+    console.log(
+      "Reserve0:",
+      parseInt(reserve3[0]) / 1e18,
+      "Reserve1:",
+      parseInt(reserve3[1]) / 1e18
     );
 
     callback(true);

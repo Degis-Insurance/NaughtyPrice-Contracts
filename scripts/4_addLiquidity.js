@@ -1,5 +1,6 @@
-const tokenAddress = "0x4670C32cB6557004AF0993765B01b788282B32ce";
-const pairAddress = "0xE6C4945d78736dAD3e2B13C69f872d541E743f1B";
+const tokenAddress = "0xAA552751aEF4DE9feEB4f875E7Ed3170D03C9c41";
+const pairAddress = "0x402b1096bF14eD442A132cb66057b451Bac24252";
+const usdAddress = "0x93424a368464763b244b761CBA4812D33B5e2f0b";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -12,7 +13,7 @@ module.exports = async (callback) => {
   try {
     const accounts = await web3.eth.getAccounts();
     const mainAccount = accounts[0];
-    const usdt = await USDT.deployed();
+    const usdt = await USDT.at(usdAddress);
 
     const factory = await NaughtyFactory.deployed();
     console.log("factory address", factory.address);
@@ -34,10 +35,6 @@ module.exports = async (callback) => {
       from: mainAccount,
     });
 
-    await usdt.approve(core.address, web3.utils.toWei("400", "ether"), {
-      from: mainAccount,
-    });
-
     let date = new Date().getTime();
     date = parseInt(date / 1000);
     console.log("now:", date);
@@ -55,6 +52,17 @@ module.exports = async (callback) => {
       { from: mainAccount }
     );
     console.log(tx.tx);
+
+    await usdt.approve(router.address, web3.utils.toWei("400", "ether"), {
+      from: mainAccount,
+    });
+    await usdt.approve(core.address, web3.utils.toWei("400", "ether"), {
+      from: mainAccount,
+    });
+
+    await policy.approve(router.address, web3.utils.toWei("400", "ether"), {
+      from: mainAccount,
+    });
 
     // Add liquidity only with stablecoin
     const deletx = await router.addLiquidityWithUSD(
