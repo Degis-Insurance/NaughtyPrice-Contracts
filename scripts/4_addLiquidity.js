@@ -1,6 +1,6 @@
-const tokenAddress = "0xAA552751aEF4DE9feEB4f875E7Ed3170D03C9c41";
-const pairAddress = "0x402b1096bF14eD442A132cb66057b451Bac24252";
 const usdAddress = "0x93424a368464763b244b761CBA4812D33B5e2f0b";
+
+const policyTokenName = "BTC_40000_L_202101";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -13,6 +13,7 @@ module.exports = async (callback) => {
   try {
     const accounts = await web3.eth.getAccounts();
     const mainAccount = accounts[0];
+
     const usdt = await USDT.at(usdAddress);
 
     const factory = await NaughtyFactory.deployed();
@@ -24,7 +25,20 @@ module.exports = async (callback) => {
     const router = await NaughtyRouter.deployed();
     console.log("router address", router.address);
 
+    const tokenAddress = await core.findAddressbyName(policyTokenName, {
+      from: mainAccount,
+    });
+    console.log("policy token address in core:", tokenAddress);
     const policy = await PolicyToken.at(tokenAddress);
+
+    const pairAddress = await factory.getPairAddress(
+      tokenAddress,
+      usdt.address,
+      {
+        from: mainAccount,
+      }
+    );
+    console.log("Pair address:", pairAddress);
 
     // 添加20-20的流动性
     await policy.approve(router.address, web3.utils.toWei("400", "ether"), {
@@ -96,9 +110,9 @@ module.exports = async (callback) => {
     const removetx = await router.removeLiquidity(
       tokenAddress,
       usdt.address,
-      web3.utils.toWei("20", "ether"),
-      web3.utils.toWei("10", "ether"),
-      web3.utils.toWei("10", "ether"),
+      web3.utils.toWei("2", "ether"),
+      web3.utils.toWei("1", "ether"),
+      web3.utils.toWei("1", "ether"),
       mainAccount,
       date + 6000,
       { from: mainAccount }

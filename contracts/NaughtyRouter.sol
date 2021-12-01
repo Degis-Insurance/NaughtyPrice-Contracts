@@ -229,7 +229,7 @@ contract NaughtyRouter {
      * @param _tokenOut Address of output token
      * @param _to User address
      * @param _deadline Deadline for this specific swap
-     * @return amounts Amounts to be really put in
+     * @return amountIn Amounts to be really put in
      */
     function swapTokensforExactTokens(
         uint256 _amountInMax,
@@ -238,7 +238,7 @@ contract NaughtyRouter {
         address _tokenOut,
         address _to,
         uint256 _deadline
-    ) external beforeDeadline(_deadline) returns (uint256 amounts) {
+    ) external beforeDeadline(_deadline) returns (uint256 amountIn) {
         address pair = NaughtyLibrary.getPairAddress(
             factory,
             _tokenIn,
@@ -251,33 +251,21 @@ contract NaughtyRouter {
             "This pool has been frozen for swapping"
         );
 
-        // Get how many tokens should be put in
-        amounts = NaughtyLibrary.getAmountsIn(
+        bool isBuying = NaughtyLibrary.checkStablecoin(policyCore, _tokenIn);
+
+        // Get how many tokens should be put in (the order depends on isBuying)
+        amountIn = NaughtyLibrary.getAmountIn(
             factory,
+            isBuying,
             _amountOut,
             _tokenIn,
             _tokenOut
         );
+        require(amountIn <= _amountInMax, "excessive input amount");
 
-        require(amounts <= _amountInMax, "excessive input amount");
+        transferHelper(_tokenIn, msg.sender, pair, amountIn);
 
-        IERC20(_tokenIn).safeTransferFrom(msg.sender, pair, amounts);
-
-        // If tokenIn is usd then amount0Out = amountOut
-        bool isStablecoin = NaughtyLibrary.checkStablecoin(
-            policyCore,
-            _tokenIn
-        );
-
-        // If the user is buying insurances, give them buyer tokens
-        if (isStablecoin) {
-            IBuyerToken(buyerToken).mint(msg.sender, amounts);
-        }
-
-        uint256 amount0Out = isStablecoin ? _amountOut : 0;
-        uint256 amount1Out = isStablecoin ? 0 : _amountOut;
-
-        INaughtyPair(pair).swap(amount0Out, amount1Out, _to);
+        _swap(pair, amountIn, _amountOut, isBuying, _to);
     }
 
     /**
@@ -288,7 +276,7 @@ contract NaughtyRouter {
      * @param _tokenOut Address of output token
      * @param _to User address
      * @param _deadline Deadline for this specific swap
-     * @return amounts Amounts to be really given out
+     * @return amountOut Amounts to be really given out
      */
     function swapExactTokensforTokens(
         uint256 _amountIn,
@@ -297,7 +285,7 @@ contract NaughtyRouter {
         address _tokenOut,
         address _to,
         uint256 _deadline
-    ) external beforeDeadline(_deadline) returns (uint256 amounts) {
+    ) external beforeDeadline(_deadline) returns (uint256 amountOut) {
         address pair = NaughtyLibrary.getPairAddress(
             factory,
             _tokenIn,
@@ -310,32 +298,22 @@ contract NaughtyRouter {
             "This pool has been frozen for swapping"
         );
 
-        amounts = NaughtyLibrary.getAmountsOut(
+        // Check if the tokenIn is stablecoin
+        bool isBuying = NaughtyLibrary.checkStablecoin(policyCore, _tokenIn);
+
+        // Get how many tokens should be given out (the order depends on isBuying)
+        amountOut = NaughtyLibrary.getAmountOut(
             factory,
+            isBuying,
             _amountIn,
             _tokenIn,
             _tokenOut
         );
+        require(amountOut >= _amountOutMin, "excessive output amount");
 
-        require(amounts >= _amountOutMin, "excessive output amount");
+        transferHelper(_tokenIn, msg.sender, pair, _amountIn);
 
-        IERC20(_tokenIn).safeTransferFrom(msg.sender, pair, _amountIn);
-
-        // Check if the tokenIn is stablecoin
-        bool isStablecoin = NaughtyLibrary.checkStablecoin(
-            policyCore,
-            _tokenIn
-        );
-
-        // If the user is buying insurances, give them buyer tokens
-        if (isStablecoin) {
-            IBuyerToken(buyerToken).mint(msg.sender, amounts);
-        }
-
-        uint256 amount0Out = isStablecoin ? amounts : 0;
-        uint256 amount1Out = isStablecoin ? 0 : amounts;
-
-        INaughtyPair(pair).swap(amount0Out, amount1Out, _to);
+        _swap(pair, _amountIn, amountOut, isBuying, _to);
     }
 
     /**
@@ -407,5 +385,33 @@ contract NaughtyRouter {
         uint256 _amount
     ) internal {
         IERC20(_token).safeTransferFrom(_from, _to, _amount);
+    }
+
+    /**
+     * @notice Finish swap process
+     * @param _pair Address of the pair
+     * @param _amountIn Amount of tokens put in
+     * @param _amountOut Amount of tokens get out
+     * @param _isBuying Whether this is a purchase or a sell
+     * @param _to Address of the user
+     */
+    function _swap(
+        address _pair,
+        uint256 _amountIn,
+        uint256 _amountOut,
+        bool _isBuying,
+        address _to
+    ) internal {
+        // Only give buyer tokens when this is a purchase
+        if (_isBuying) {
+            IBuyerToken(buyerToken).mint(msg.sender, _amountIn);
+        }
+
+        // If the user is buying policies => amount1Out = 0
+        // One of these two variables will be 0
+        uint256 amountAOut = _isBuying ? _amountOut : 0;
+        uint256 amountBOut = _isBuying ? 0 : _amountOut;
+
+        INaughtyPair(_pair).swap(amountAOut, amountBOut, _to);
     }
 }

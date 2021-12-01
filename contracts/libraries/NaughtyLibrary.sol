@@ -8,80 +8,122 @@ import "../interfaces/IPolicyCore.sol";
 library NaughtyLibrary {
     /**
      * @notice Used when swap exact tokens for tokens (in is fixed)
+     * @param factory Address of naughtyFactory contract
+     * @param isBuying Whether the user is buying policy tokens
+     * @param _amountIn Amount of tokens put in
+     * @param _tokenIn Address of the input token
+     * @param _tokenOut Address of the output token
      */
-    function getAmountsOut(
+    function getAmountOut(
         address factory,
+        bool isBuying,
         uint256 _amountIn,
         address _tokenIn,
         address _tokenOut
     ) internal view returns (uint256 amounts) {
-        (uint256 reserveIn, uint256 reserveOut) = getReserves(
+        (uint256 reserveA, uint256 reserveB) = getReserves(
             factory,
             _tokenIn,
             _tokenOut
         );
-        amounts = getAmountOut(_amountIn, reserveIn, reserveOut);
+
+        // If tokenIn is stablecoin (isBuying), then tokeIn should be tokenB
+        // Get the right order
+        (uint256 reserveIn, uint256 reserveOut) = isBuying
+            ? (reserveB, reserveA)
+            : (reserveA, reserveB);
+
+        amounts = _calcAmountOut(_amountIn, reserveIn, reserveOut);
     }
 
     /**
      * @notice Used when swap tokens for exact tokens (out is fixed)
+     * @param factory Address of naughtyFactory contract
+     * @param isBuying Whether the user is buying policy tokens
+     * @param _amountOut Amount of tokens given out
+     * @param _tokenIn Address of the input token
+     * @param _tokenOut Address of the output token
      */
-    function getAmountsIn(
+    function getAmountIn(
         address factory,
+        bool isBuying,
         uint256 _amountOut,
         address _tokenIn,
         address _tokenOut
     ) internal view returns (uint256 amounts) {
-        (uint256 reserveIn, uint256 reserveOut) = getReserves(
+        (uint256 reserveA, uint256 reserveB) = getReserves(
             factory,
             _tokenIn,
             _tokenOut
         );
-        amounts = getAmountIn(_amountOut, reserveIn, reserveOut);
+        // If tokenIn is stablecoin (isBuying), then tokeIn should be tokenB
+        // Get the right order
+        (uint256 reserveIn, uint256 reserveOut) = isBuying
+            ? (reserveB, reserveA)
+            : (reserveA, reserveB);
+
+        amounts = _calcAmountIn(_amountOut, reserveIn, reserveOut);
     }
 
-    // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
-    function getAmountOut(
-        uint256 amountIn,
-        uint256 reserveIn,
-        uint256 reserveOut
+    /**
+     * @notice given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+     * @param _amountIn Amout of input tokens
+     * @param _reserveIn Reserve of the input token
+     * @param _reserveOut Reserve of the output token
+     * @return amountOut Amount of output tokens
+     */
+    function _calcAmountOut(
+        uint256 _amountIn,
+        uint256 _reserveIn,
+        uint256 _reserveOut
     ) internal pure returns (uint256 amountOut) {
-        require(amountIn > 0, "insufficient input amount");
-        require(reserveIn > 0 && reserveOut > 0, "insufficient liquidity");
+        require(_amountIn > 0, "insufficient input amount");
+        require(_reserveIn > 0 && _reserveOut > 0, "insufficient liquidity");
 
-        uint256 amountInWithFee = amountIn * 980;
-        uint256 numerator = amountInWithFee * reserveOut;
-        uint256 denominator = reserveIn * 1000 + amountInWithFee;
+        uint256 amountInWithFee = _amountIn * 980;
+        uint256 numerator = amountInWithFee * _reserveOut;
+        uint256 denominator = _reserveIn * 1000 + amountInWithFee;
 
         amountOut = numerator / denominator;
     }
 
-    // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
-    function getAmountIn(
-        uint256 amountOut,
-        uint256 reserveIn,
-        uint256 reserveOut
+    /**
+     * @notice given an output amount of an asset and pair reserves, returns a required input amount of the other asset
+     * @param _amountOut Amout of output tokens
+     * @param _reserveIn Reserve of the input token
+     * @param _reserveOut Reserve of the output token
+     * @return amountIn Amount of input tokens
+     */
+    function _calcAmountIn(
+        uint256 _amountOut,
+        uint256 _reserveIn,
+        uint256 _reserveOut
     ) internal pure returns (uint256 amountIn) {
-        require(amountOut > 0, "insufficient output amount");
-        require(reserveIn > 0 && reserveOut > 0, "insufficient liquidity");
+        require(_amountOut > 0, "insufficient output amount");
+        require(_reserveIn > 0 && _reserveOut > 0, "insufficient liquidity");
 
-        uint256 numerator = reserveIn * amountOut * 1000;
-        uint256 denominator = (reserveOut - amountOut) * 980;
+        uint256 numerator = _reserveIn * _amountOut * 1000;
+        uint256 denominator = (_reserveOut - _amountOut) * 980;
         amountIn = (numerator / denominator) + 1;
     }
 
-    // fetches and sorts the reserves for a pair
+    /**
+     * @notice Fetche the reserves for a pair
+     * @dev You need to sort the token order by yourself!
+     *      No matter your input order, the return value will always start with policy token reserve.
+     */
     function getReserves(
         address factory,
         address tokenA,
         address tokenB
-    ) public view returns (uint112 reserve0, uint112 reserve1) {
+    ) public view returns (uint112 reserveA, uint112 reserveB) {
         address pairAddress = INaughtyFactory(factory).getPairAddress(
             tokenA,
             tokenB
         );
 
-        (reserve0, reserve1) = INaughtyPair(pairAddress).getReserves();
+        // (Policy token reserve, stablecoin reserve)
+        (reserveA, reserveB) = INaughtyPair(pairAddress).getReserves();
     }
 
     /**
@@ -103,39 +145,59 @@ library NaughtyLibrary {
         return pairAddress;
     }
 
-    // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
+    /**
+     * @notice Given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
+     * @dev Used when add or remove liquidity
+     * @param _amountA Amount of tokenA ( can be policytoken or stablecoin)
+     * @param _reserveA Reserve of tokenA
+     * @param _reserveB Reserve of tokenB
+     */
     function quote(
-        uint256 amountA,
-        uint256 reserveA,
-        uint256 reserveB
+        uint256 _amountA,
+        uint256 _reserveA,
+        uint256 _reserveB
     ) internal pure returns (uint256 amountB) {
-        require(amountA > 0, "insufficient amount");
-        require(reserveA > 0 && reserveB > 0, "insufficient liquidity");
+        require(_amountA > 0, "insufficient amount");
+        require(_reserveA > 0 && _reserveB > 0, "insufficient liquidity");
 
-        amountB = (amountA * reserveB) / reserveA;
+        amountB = (_amountA * _reserveB) / _reserveA;
     }
 
-    function checkStablecoin(address policyCore, address _coinAddress)
+    /**
+     * @notice Check if a token is stablecoin (supported in naughty price)
+     * @param _policyCore Address of policyCore contract
+     * @param _coinAddress Address of the token to be checked
+     * @return isStablecoin Whether this token is a stablecoin
+     */
+    function checkStablecoin(address _policyCore, address _coinAddress)
         public
         view
         returns (bool)
     {
-        return IPolicyCore(policyCore).isStablecoinAddress(_coinAddress);
+        return IPolicyCore(_policyCore).isStablecoinAddress(_coinAddress);
     }
 
     /**
      * @notice Used when users only provide stablecoins and want to mint & add liquidity in one step
+     * @dev Need have approval before
+     * @param _policyCore Address of the policyCore contract
+     * @param _policyTokenAddress Address of the policy token
+     * @param _stablecoin Address of the stablecoin
+     * @param _amount Amount to be used for minting policy tokens
+     * @param _userAddress The user's address
      */
     function mintPolicyTokensForUser(
-        address policyCore,
+        address _policyCore,
         address _policyTokenAddress,
         address _stablecoin,
         uint256 _amount,
         address _userAddress
     ) public {
-        string memory policyTokenName = IPolicyCore(policyCore)
+        // Find the policy token name
+        string memory policyTokenName = IPolicyCore(_policyCore)
             .findNamebyAddress(_policyTokenAddress);
-        IPolicyCore(policyCore).delegateDeposit(
+
+        IPolicyCore(_policyCore).delegateDeposit(
             policyTokenName,
             _stablecoin,
             _amount,

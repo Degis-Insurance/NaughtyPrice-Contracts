@@ -81,6 +81,7 @@ contract NaughtyPair is PoolLPToken, INaughtyPair {
 
     /**
      * @notice Get reserve0 (Policy token) and reserve1 (stablecoin).
+     * @dev This function always put policy token at the first place!
      * @return _reserve0 Reserve of token0
      * @return _reserve1 Reserve of token1
      */
@@ -233,8 +234,8 @@ contract NaughtyPair is PoolLPToken, INaughtyPair {
             address _token1 = token1;
             require(_to != _token0 && _to != _token1, "INVALID_TO");
 
-            if (_amount0Out > 0) IERC20(_token0).safeTransfer(_to, _amount0Out); // optimistically transfer tokens
-            if (_amount1Out > 0) IERC20(_token1).safeTransfer(_to, _amount1Out); // optimistically transfer tokens
+            if (_amount0Out > 0) IERC20(_token0).safeTransfer(_to, _amount0Out);
+            if (_amount1Out > 0) IERC20(_token1).safeTransfer(_to, _amount1Out);
 
             balance0 = IERC20(_token0).balanceOf(address(this));
             balance1 = IERC20(_token1).balanceOf(address(this));
@@ -251,10 +252,11 @@ contract NaughtyPair is PoolLPToken, INaughtyPair {
         {
             uint256 balance0Adjusted = balance0 * 1000 - amount0In * 20;
             uint256 balance1Adjusted = balance1 * 1000 - amount1In * 20;
+
             require(
                 balance0Adjusted * balance1Adjusted >=
-                    _reserve0 * _reserve1 * 1000**2,
-                "K"
+                    _reserve0 * _reserve1 * (100**2),
+                "The remaining x*y is less than K"
             );
         }
 

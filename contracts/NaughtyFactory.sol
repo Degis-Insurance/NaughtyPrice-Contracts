@@ -36,6 +36,9 @@ contract NaughtyFactory is INaughtyFactory {
     address public feeTo;
     address public feeToSetter;
 
+    bytes32 public constant INIT_CODE_HASH =
+        keccak256(abi.encodePacked(type(NaughtyPair).creationCode));
+
     constructor(address _feeToSetter) {
         feeToSetter = _feeToSetter;
     }

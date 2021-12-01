@@ -24,6 +24,10 @@ module.exports = async (callback) => {
     const balance = await usdt.balanceOf(mainAccount);
     console.log("user balance:", parseInt(balance) / 1e18);
 
+    // await usdt.mint(web3.utils.toWei("10000", "ether"), {
+    //   from: mainAccount,
+    // });
+
     await usdt.approve(core.address, web3.utils.toWei("200", "ether"), {
       from: mainAccount,
     });
@@ -31,7 +35,7 @@ module.exports = async (callback) => {
     // 抵押100usd  铸造100 policy token
     const deposit_tx = await core.deposit(
       tokenName,
-      usd_address,
+      usdt.address,
       web3.utils.toWei("100", "ether"),
       { from: mainAccount }
     );
@@ -39,7 +43,7 @@ module.exports = async (callback) => {
 
     const delegate_deposit = await core.delegateDeposit(
       tokenName,
-      usd_address,
+      usdt.address,
       web3.utils.toWei("100", "ether"),
       mainAccount,
       { from: mainAccount }
@@ -54,16 +58,6 @@ module.exports = async (callback) => {
       { from: mainAccount }
     );
     console.log(redeem_tx.tx);
-
-    const address = await core.findAddressbyName(policyTokenName, {
-      from: mainAccount,
-    });
-    console.log("policy token address in core:", address);
-
-    const pairAddress = await factory.getPairAddress(address, usd_address, {
-      from: mainAccount,
-    });
-    console.log("Pair address:", pairAddress);
 
     callback(true);
   } catch (err) {
