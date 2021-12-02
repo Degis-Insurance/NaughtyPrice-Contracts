@@ -1,0 +1,15 @@
+const PriceGetter = artifacts.require("PriceGetter");
+
+const fs = require("fs");
+
+module.exports = function (deployer, network) {
+  deployer.deploy(PriceGetter);
+
+  if (network.startsWith("rinkeby")) {
+    const addressList = JSON.parse(fs.readFileSync("address.json"));
+
+    addressList.PriceGetter = PriceGetter.adderss;
+
+    fs.writeFileSync("address.json", JSON.stringify(addressList, null, "\t"));
+  }
+};

@@ -69,9 +69,9 @@ module.exports = async (callback) => {
     const reserve1 = await pair.getReserves();
     console.log(
       "Reserve0 Before:",
-      parseInt(reserve1[0]),
+      parseInt(reserve1[0]) / 1e18,
       "Reserve1 Before:",
-      parseInt(reserve1[1])
+      parseInt(reserve1[1]) / 1e18
     );
 
     // await pair.sync({ from: mainAccount });
@@ -84,8 +84,8 @@ module.exports = async (callback) => {
     const tx = await router.swapExactTokensforTokens(
       web3.utils.toWei("4", "ether"),
       web3.utils.toWei("2", "ether"),
-      tokenAddress,
       usdt.address,
+      tokenAddress,
       mainAccount,
       date + 6000,
       { from: mainAccount }
@@ -105,15 +105,15 @@ module.exports = async (callback) => {
     const reserve2 = await pair.getReserves();
 
     console.log(
-      "Reserve0 after first swap(sell):",
-      parseInt(reserve2[0]),
-      "Reserve1 after first swap(sell):",
-      parseInt(reserve2[1])
+      "Reserve0 after first swap(buy):",
+      parseInt(reserve2[0]) / 1e18,
+      "Reserve1 after first swap(buy):",
+      parseInt(reserve2[1]) / 1e18
     );
 
     // 卖
     const tx3 = await router.swapExactTokensforTokens(
-      web3.utils.toWei("2", "ether"),
+      web3.utils.toWei("1", "ether"),
       web3.utils.toWei("0.01", "ether"),
       tokenAddress,
       usdt.address,
