@@ -1,5 +1,5 @@
 const tokenName = "BTC_40000_L_202101";
-const usd_address = "0x93424a368464763b244b761CBA4812D33B5e2f0b";
+const usd_address = "0xAc141573202C0c07DFE432EAa1be24a9cC97d358";
 
 const policyTokenName = "BTC_40000_L_202101";
 
