@@ -63,10 +63,4 @@ module.exports = async function (deployer, network) {
       }
     });
   }
-
-  // await deployer.deploy(
-  //   NaughtyProxy,
-  //   PolicyCore.address,
-  //   NaughtyRouter.address
-  // );
 };

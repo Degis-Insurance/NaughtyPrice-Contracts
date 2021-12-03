@@ -4,6 +4,10 @@ pragma solidity 0.8.9;
 interface INaughtyFactory {
     function feeTo() external view returns (address);
 
+    function getAllTokens() external view returns (address[] memory);
+
+    function getAllPairs() external view returns (address[] memory);
+
     function getPairAddress(address _tokenAddress1, address _tokenAddress2)
         external
         view

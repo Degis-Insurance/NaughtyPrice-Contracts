@@ -26,22 +26,32 @@ contract NaughtyFactory is INaughtyFactory {
     // PolicyToken Address => StableCoin Address => Pool Address
     mapping(address => mapping(address => address)) getPair;
 
+    // Store all the pairs' addresses
     address[] allPairs;
+
+    // Store all policy token addresses
     address[] allTokens;
 
     uint256 public _nextId;
 
+    // Address of policyCore
     address public policyCore;
 
+    // Used for the management fee (currently not open)
     address public feeTo;
     address public feeToSetter;
 
+    // INIT_CODE_HASH, we do not use it, but put it here
     bytes32 public constant INIT_CODE_HASH =
         keccak256(abi.encodePacked(type(NaughtyPair).creationCode));
 
     constructor(address _feeToSetter) {
         feeToSetter = _feeToSetter;
     }
+
+    // ---------------------------------------------------------------------------------------- //
+    // *************************************** Modifiers ************************************** //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Only feeToSetter can call some functions
@@ -54,6 +64,10 @@ contract NaughtyFactory is INaughtyFactory {
         _;
     }
 
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************ View Functions ************************************ //
+    // ---------------------------------------------------------------------------------------- //
+
     /**
      * @notice Next token to be deployed
      * @return Latest token address
@@ -64,9 +78,25 @@ contract NaughtyFactory is INaughtyFactory {
     }
 
     /**
+     * @notice Get all pair addresses
+     */
+    function getAllPairs() external view returns (address[] memory) {
+        return allPairs;
+    }
+
+    /**
+     * @notice Get all token addresses
+     */
+    function getAllTokens() external view returns (address[] memory) {
+        return allTokens;
+    }
+
+    /**
      * @notice Get the pair address deployed by the factory
      *         PolicyToken address first, and then stablecoin address
-     *         The order of the token not matters
+     *         The order of the tokens will be sorted inside the function
+     * @param _tokenAddress1 Address of token1
+     * @param _tokenAddress2 Address of toekn2
      * @return Pool address of the two tokens
      */
     function getPairAddress(address _tokenAddress1, address _tokenAddress2)
@@ -84,6 +114,10 @@ contract NaughtyFactory is INaughtyFactory {
 
         return _pairAddress;
     }
+
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************* Set Functions ************************************ //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Remember to call this function to set the policyCore address
@@ -109,6 +143,10 @@ contract NaughtyFactory is INaughtyFactory {
     function setFeeToSetter(address _feeToSetter) external onlyFeeToSetter {
         feeToSetter = _feeToSetter;
     }
+
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************* Main Functions *********************************** //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice After deploy the policytoken and get the address,

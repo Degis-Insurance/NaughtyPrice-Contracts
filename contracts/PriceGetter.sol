@@ -8,6 +8,7 @@ import "./interfaces/IPriceGetter.sol";
  * @title  Price Getter
  * @notice This is the contract for getting price feed from chainlink.
  *         The contract will keep a record from tokenName => priceFeed Address.
+ *         Got the sponsorship and collaboration with Chainlink.
  */
 contract PriceGetter is IPriceGetter {
     // Use token name (string) as the mapping key
@@ -49,6 +50,10 @@ contract PriceGetter is IPriceGetter {
         owner = msg.sender;
     }
 
+    // ---------------------------------------------------------------------------------------- //
+    // *************************************** Modifiers ************************************** //
+    // ---------------------------------------------------------------------------------------- //
+
     /**
      * @notice Only the owner can call this function
      */
@@ -65,6 +70,10 @@ contract PriceGetter is IPriceGetter {
         _;
     }
 
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************ View Functions ************************************ //
+    // ---------------------------------------------------------------------------------------- //
+
     /**
      * @notice Get the price feed address of a token
      * @param _tokenName Name of the strike token
@@ -76,6 +85,10 @@ contract PriceGetter is IPriceGetter {
     {
         return currentPriceFeed[_tokenName];
     }
+
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************ Set Functions ************************************* //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Set a price feed oracle address for a token
@@ -92,6 +105,10 @@ contract PriceGetter is IPriceGetter {
 
         emit SetPriceFeed(_tokenName, _feedAddress);
     }
+
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************* Main Functions *********************************** //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Get latest price of a token

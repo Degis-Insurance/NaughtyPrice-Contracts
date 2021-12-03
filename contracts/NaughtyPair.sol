@@ -8,22 +8,35 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/INaughtyFactory.sol";
 import "./interfaces/INaughtyPair.sol";
 
+/**
+ * @title  Naughty Pair
+ * @notice This is the contract for the naughtyPrice swapping pair.
+ *         Every time a new naughtyPrice product is online you need to deploy this contract.
+ *         The contract will be initialized with two tokens and a deadline.
+ *         Token0 will be policy tokens and token1 will be stablecoins.
+ *         The swaps are only availale before the deadline.
+ */
 contract NaughtyPair is PoolLPToken, INaughtyPair {
     using SafeERC20 for IERC20;
 
-    address public factory; // Factory contract address
+    // naughtyFactory contract address
+    address public factory;
 
+    // Token addresses in the pool
     address public token0; // Insurance Token
     address public token1; // USDT
 
     uint112 private reserve0; // Amount of Insurance Token
     uint112 private reserve1; // Amount of USDT
 
+    // Used for modifiers
     bool public unlocked = true;
 
-    uint256 public deadline; // Every pool will have a deadline
+    // Every pool will have a deadline
+    uint256 public deadline;
 
-    uint256 public constant MINIMUM_LIQUIDITY = 10**3; // minimum liquidity locked
+    // Minimum liquidity locked
+    uint256 public constant MINIMUM_LIQUIDITY = 10**3;
 
     // uint256 public kLast;
 
@@ -41,6 +54,10 @@ contract NaughtyPair is PoolLPToken, INaughtyPair {
         unlocked = true;
     }
 
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************** Modifiers *************************************** //
+    // ---------------------------------------------------------------------------------------- //
+
     /**
      * @notice Can not swap after the deadline
      * @dev Each pool will have a deadline and it was set when deployed
@@ -56,8 +73,8 @@ contract NaughtyPair is PoolLPToken, INaughtyPair {
 
     /**
      * @notice Initialize the contract status after the deployment by factory
-     * @param _token0 Token0 address
-     * @param _token1 Token1 address
+     * @param _token0 Token0 address (policy token address)
+     * @param _token1 Token1 address (stablecoin address)
      * @param _deadline Deadline for this pool
      */
     function initialize(
@@ -102,7 +119,7 @@ contract NaughtyPair is PoolLPToken, INaughtyPair {
      * @notice Mint LP Token to liquidity providers
      *         Called when adding liquidity.
      * @param to The user address
-     * @return liquidity The LP token number
+     * @return liquidity The LP token amount
      */
     function mint(address to) external returns (uint256 liquidity) {
         (uint112 _reserve0, uint112 _reserve1) = getReserves(); // gas savings
