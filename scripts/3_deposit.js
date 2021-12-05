@@ -1,4 +1,4 @@
-const tokenName = "BTC_30000_L_202101";
+const tokenName = "ETH_2000_L_202101";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -21,6 +21,16 @@ module.exports = async (callback) => {
 
     const core = await PolicyCore.at(addressList.PolicyCore);
     console.log(core.address);
+
+    const address = await core.findAddressbyName(tokenName, {
+      from: mainAccount,
+    });
+    console.log(address);
+
+    const pairAddress = await factory.getPairAddress(address, usdt.address, {
+      from: mainAccount,
+    });
+    console.log("Pair address:", pairAddress);
 
     const balance = await usdt.balanceOf(mainAccount);
     console.log("user balance:", parseInt(balance) / 1e18);
