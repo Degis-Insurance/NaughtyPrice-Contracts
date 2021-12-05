@@ -1,10 +1,18 @@
-const tokenName = "BTC";
-const strikePrice = "40000";
-const round = 202101;
-const policyTokenName = "BTC_40000_L_202101";
-
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyFactory = artifacts.require("NaughtyFactory");
+
+const fs = require("fs");
+
+const args = require("minimist")(process.argv.slice(2));
+const tokenName = args["token"];
+const strikePrice = args["K"];
+const isCall = args["isCall"];
+const round = args["round"];
+
+const nameisCall = isCall == 1 ? "H" : "L";
+const policyTokenName =
+  tokenName + "_" + strikePrice + "_" + nameisCall + "_" + round;
+console.log(policyTokenName);
 
 module.exports = async (callback) => {
   try {
@@ -12,10 +20,12 @@ module.exports = async (callback) => {
     const mainAccount = accounts[0];
     console.log("main account:", mainAccount);
 
-    const core = await PolicyCore.deployed();
+    const addressList = JSON.parse(fs.readFileSync("address.json"));
+
+    const core = await PolicyCore.at(addressList.PolicyCore);
     console.log("policyCore address:", core.address);
 
-    const factory = await NaughtyFactory.deployed();
+    const factory = await NaughtyFactory.at(addressList.NaughtyFactory);
 
     await factory.setPolicyCoreAddress(core.address, {
       from: mainAccount,
@@ -25,10 +35,11 @@ module.exports = async (callback) => {
     now = parseInt(now / 1000);
     console.log("now timestamp:", now);
 
-    const policyTokenAddress = await core.deployPolicyToken(
+    const boolisCall = isCall == 1 ? true : false;
+    await core.deployPolicyToken(
       tokenName,
-      false,
-      web3.utils.toWei(strikePrice, "ether"),
+      boolisCall,
+      web3.utils.toWei(strikePrice.toString(), "ether"),
       round,
       now + 300000,
       now + 300060,
@@ -36,8 +47,6 @@ module.exports = async (callback) => {
         from: mainAccount,
       }
     );
-
-    console.log("new deployed policy token:", policyTokenAddress);
 
     const address = await core.findAddressbyName(policyTokenName, {
       from: mainAccount,

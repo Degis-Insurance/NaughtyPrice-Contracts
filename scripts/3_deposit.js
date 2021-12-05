@@ -1,11 +1,11 @@
 const tokenName = "BTC_40000_L_202101";
 const usd_address = "0xAc141573202C0c07DFE432EAa1be24a9cC97d358";
 
-const policyTokenName = "BTC_40000_L_202101";
-
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyFactory = artifacts.require("NaughtyFactory");
+
+const fs = require("fs");
 
 module.exports = async (callback) => {
   try {

@@ -1,37 +1,41 @@
-const tokenName = "BTC_40000_L_202101";
-const usd_address = "0xAc141573202C0c07DFE432EAa1be24a9cC97d358";
-
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyFactory = artifacts.require("NaughtyFactory");
 const NaughtyRouter = artifacts.require("NaughtyRouter");
 const USD = artifacts.require("USDT");
+
+const args = require("minimist")(process.argv.slice(2));
+const tokenName = args["name"];
+
+const fs = require("fs");
 
 module.exports = async (callback) => {
   try {
     const accounts = await web3.eth.getAccounts();
     const mainAccount = accounts[0];
 
-    const factory = await NaughtyFactory.deployed();
+    const addressList = JSON.parse(fs.readFileSync("address.json"));
+
+    const factory = await NaughtyFactory.at(addressList.NaughtyFactory);
     console.log(factory.address);
 
-    const core = await PolicyCore.deployed();
+    const core = await PolicyCore.at(addressList.PolicyCore);
     console.log(core.address);
 
-    const router = await NaughtyRouter.deployed();
+    const router = await NaughtyRouter.at(addressList.NaughtyRouter);
     console.log(router.address);
 
-    // This is for local
-    const usdt = await USD.at(usd_address);
-
-    await core.addStablecoin(usdt.address, { from: mainAccount });
+    const usdt = await USD.at(addressList.USDT);
+    const hasAddedStablecoin = await core.isStablecoinAddress(usdt.address);
+    if (!hasAddedStablecoin) {
+      await core.addStablecoin(usdt.address, { from: mainAccount });
+    }
 
     let now = new Date().getTime();
     now = parseInt(now / 1000);
 
-    const tx = await core.deployPool(tokenName, usdt.address, now + 300000, {
+    await core.deployPool(tokenName, usdt.address, now + 300000, {
       from: mainAccount,
     });
-    console.log(tx.tx);
 
     const address = await core.findAddressbyName(tokenName, {
       from: mainAccount,
@@ -42,7 +46,10 @@ module.exports = async (callback) => {
     });
     console.log("Pair address:", pairAddress);
 
-    await router.setPolicyCore(core.address, { from: mainAccount });
+    const coreinRouter = await router.policyCore.call();
+    if (coreinRouter != core.address) {
+      await router.setPolicyCore(core.address, { from: mainAccount });
+    }
 
     callback(true);
   } catch (err) {

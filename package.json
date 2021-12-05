@@ -27,6 +27,7 @@
     "prb-math": "^2.4.1"
   },
   "devDependencies": {
+    "eth-gas-reporter": "^0.2.23",
     "solc-0.8": "npm:solc@^0.8.9",
     "solidity-docgen": "^0.5.16"
   }
