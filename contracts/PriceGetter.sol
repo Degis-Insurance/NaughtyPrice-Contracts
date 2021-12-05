@@ -24,28 +24,28 @@ contract PriceGetter is IPriceGetter {
         // At first, launch three kind of pools
 
         // This is the rinkeby eth price feed
-        priceFeed["ETH"] = AggregatorV3Interface(
-            0x8A753747A1Fa494EC906cE90E9f37563A8AF630e
-        );
-        currentPriceFeed["ETH"] = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
-
-        priceFeed["BTC"] = AggregatorV3Interface(
-            0xECe365B379E1dD183B20fc5f022230C044d51404
-        );
-        currentPriceFeed["BTC"] = 0xECe365B379E1dD183B20fc5f022230C044d51404;
-
-        // Uncomment below when launched on Avalanche
-        // priceFeed["AVAX"] = AggregatorV3Interface(
-        //     0x0A77230d17318075983913bC2145DB16C7366156
-        // );
-
         // priceFeed["ETH"] = AggregatorV3Interface(
-        //     0x976B3D034E162d8bD72D6b9C989d545b839003b0
+        //     0x8A753747A1Fa494EC906cE90E9f37563A8AF630e
         // );
+        // currentPriceFeed["ETH"] = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
 
         // priceFeed["BTC"] = AggregatorV3Interface(
-        //     0x2779D32d5166BAaa2B2b658333bA7e6Ec0C65743
+        //     0xECe365B379E1dD183B20fc5f022230C044d51404
         // );
+        // currentPriceFeed["BTC"] = 0xECe365B379E1dD183B20fc5f022230C044d51404;
+
+        // Uncomment below when launched on Avalanche Fuji
+        priceFeed["AVAX"] = AggregatorV3Interface(
+            0x5498BB86BC934c8D34FDA08E81D444153d0D06aD
+        );
+
+        priceFeed["ETH"] = AggregatorV3Interface(
+            0x86d67c3D38D2bCeE722E601025C25a575021c6EA
+        );
+
+        priceFeed["BTC"] = AggregatorV3Interface(
+            0x31CF013A08c6Ac228C94551d535d5BAfE19c602a
+        );
 
         owner = msg.sender;
     }

@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./libraries/NaughtyLibrary.sol";
 import "./interfaces/IBuyerToken.sol";
-import "./interfaces/IPolicyToken.sol";
+import "./interfaces/INPPolicyToken.sol";
 
 /**
  * @title  NaughtyRouter

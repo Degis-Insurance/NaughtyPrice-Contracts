@@ -1,6 +1,4 @@
-const usdAddress = "0xAc141573202C0c07DFE432EAa1be24a9cC97d358";
-
-const policyTokenName = "BTC_40000_L_202101";
+const policyTokenName = "BTC_30000_L_202101";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -14,15 +12,17 @@ module.exports = async (callback) => {
     const accounts = await web3.eth.getAccounts();
     const mainAccount = accounts[0];
 
-    const usdt = await USDT.at(usdAddress);
+    const addressList = JSON.parse(fs.readFileSync("address.json"));
 
-    const factory = await NaughtyFactory.deployed();
+    const usdt = await USDT.at(addressList.USDT);
+
+    const factory = await NaughtyFactory.at(addressList.NaughtyFactory);
     console.log("factory address", factory.address);
 
-    const core = await PolicyCore.deployed();
+    const core = await PolicyCore.at(addressList.PolicyCore);
     console.log("core address", core.address);
 
-    const router = await NaughtyRouter.deployed();
+    const router = await NaughtyRouter.at(addressList.NaughtyRouter);
     console.log("router address", router.address);
 
     const tokenAddress = await core.findAddressbyName(policyTokenName, {

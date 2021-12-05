@@ -1,5 +1,4 @@
-const tokenName = "BTC_40000_L_202101";
-const usd_address = "0xAc141573202C0c07DFE432EAa1be24a9cC97d358";
+const tokenName = "BTC_30000_L_202101";
 
 const USDT = artifacts.require("USDT");
 const PolicyCore = artifacts.require("PolicyCore");
@@ -11,22 +10,20 @@ module.exports = async (callback) => {
   try {
     const accounts = await web3.eth.getAccounts();
     const mainAccount = accounts[0];
-    const usdt = await USDT.at(usd_address);
 
-    const factory = await NaughtyFactory.deployed();
-    console.log(factory.address);
+    const addressList = JSON.parse(fs.readFileSync("address.json"));
 
-    const core = await PolicyCore.deployed();
+    const usdt = await USDT.at(addressList.USDT);
+    console.log("USDT address:", usdt.address);
+
+    const factory = await NaughtyFactory.at(addressList.NaughtyFactory);
+    console.log("", factory.address);
+
+    const core = await PolicyCore.at(addressList.PolicyCore);
     console.log(core.address);
-
-    console.log(usdt.address);
 
     const balance = await usdt.balanceOf(mainAccount);
     console.log("user balance:", parseInt(balance) / 1e18);
-
-    // await usdt.mint(web3.utils.toWei("10000", "ether"), {
-    //   from: mainAccount,
-    // });
 
     await usdt.approve(core.address, web3.utils.toWei("200", "ether"), {
       from: mainAccount,

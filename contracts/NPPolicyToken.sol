@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "./interfaces/IPolicyToken.sol";
+import "./interfaces/INPPolicyToken.sol";
 
 /**
  * @title  Policy Token
@@ -12,7 +12,7 @@ import "./interfaces/IPolicyToken.sol";
  * @dev    It is different from the flight delay token.
  *         That is a ERC721 NFT and this is a ERC20 token.
  */
-contract PolicyToken is ERC20, IPolicyToken {
+contract NPPolicyToken is ERC20, INPPolicyToken {
     address public owner;
 
     address public minter;

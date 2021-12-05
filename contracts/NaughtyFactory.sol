@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "./PolicyToken.sol";
+import "./NPPolicyToken.sol";
 import "./NaughtyPair.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -248,7 +248,7 @@ contract NaughtyFactory is INaughtyFactory {
         view
         returns (bytes memory)
     {
-        bytes memory bytecode = type(PolicyToken).creationCode;
+        bytes memory bytecode = type(NPPolicyToken).creationCode;
 
         // Encodepacked the parameters
         // The owner & minter is set to be the policyCore address

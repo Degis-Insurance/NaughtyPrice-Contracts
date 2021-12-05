@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./libraries/NaughtyLibrary.sol";
-import "./interfaces/IPolicyToken.sol";
+import "./interfaces/INPPolicyToken.sol";
 import "./interfaces/INaughtyFactory.sol";
 import "./interfaces/IPriceGetter.sol";
 import "./interfaces/IPolicyCore.sol";
@@ -555,7 +555,7 @@ contract PolicyCore is IPolicyCore {
         uint256 amountWithFee = (_amount * 990) / 1000;
 
         // Users must have enough policy tokens to claim
-        IPolicyToken policyToken = IPolicyToken(policyTokenAddress);
+        INPPolicyToken policyToken = INPPolicyToken(policyTokenAddress);
         require(
             policyToken.balanceOf(msg.sender) >= _amount,
             "You do not have sufficient policy tokens to claim"
@@ -711,7 +711,7 @@ contract PolicyCore is IPolicyCore {
         uint256 _amount,
         address _userAddress
     ) internal {
-        IPolicyToken policyToken = IPolicyToken(_policyTokenAddress);
+        INPPolicyToken policyToken = INPPolicyToken(_policyTokenAddress);
 
         // Transfer stablecoins to this contract
         IERC20(_stablecoin).safeTransferFrom(
@@ -743,7 +743,7 @@ contract PolicyCore is IPolicyCore {
         address _stablecoin,
         uint256 _amount
     ) internal {
-        IPolicyToken policyToken = IPolicyToken(_policyTokenAddress);
+        INPPolicyToken policyToken = INPPolicyToken(_policyTokenAddress);
 
         // Give back the stablecoins
         IERC20(_stablecoin).safeTransfer(msg.sender, _amount);
@@ -763,7 +763,7 @@ contract PolicyCore is IPolicyCore {
         address _stablecoin,
         uint256 _amount
     ) internal {
-        IPolicyToken policyToken = IPolicyToken(_policyTokenAddress);
+        INPPolicyToken policyToken = INPPolicyToken(_policyTokenAddress);
 
         IERC20(_stablecoin).safeTransfer(msg.sender, _amount);
 

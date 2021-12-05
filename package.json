@@ -24,7 +24,8 @@
     "babel-polyfill": "^6.26.0",
     "babel-register": "^6.26.0",
     "dotenv": "^10.0.0",
-    "prb-math": "^2.4.1"
+    "prb-math": "^2.4.1",
+    "web3": "^1.6.1"
   },
   "devDependencies": {
     "eth-gas-reporter": "^0.2.23",
