@@ -14,7 +14,7 @@ const round = args["round"];
 const nameisCall = isCall == 1 ? "H" : "L";
 const policyTokenName =
   tokenName + "_" + strikePrice + "_" + nameisCall + "_" + round;
-console.log(policyTokenName);
+console.log("policy toke name: ", policyTokenName);
 
 module.exports = async (callback) => {
   try {
@@ -37,14 +37,17 @@ module.exports = async (callback) => {
     now = parseInt(now / 1000);
     console.log("now timestamp:", now);
 
+    const startTime = "1639310400"; //""
+    const stopTime = "1639396800"; //
+
     const boolisCall = isCall == 1 ? true : false;
     await core.deployPolicyToken(
       tokenName,
       boolisCall,
       web3.utils.toWei(strikePrice.toString(), "ether"),
       round,
-      now + 300000,
-      now + 300060,
+      startTime,
+      stopTime,
       {
         from: mainAccount,
       }

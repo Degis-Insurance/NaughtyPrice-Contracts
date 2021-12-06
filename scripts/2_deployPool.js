@@ -10,6 +10,8 @@ const tokenName = args["name"];
 
 const fs = require("fs");
 
+const startTime = "1639310400";
+
 module.exports = async (callback) => {
   try {
     const accounts = await web3.eth.getAccounts();
@@ -35,13 +37,14 @@ module.exports = async (callback) => {
     let now = new Date().getTime();
     now = parseInt(now / 1000);
 
-    await core.deployPool(tokenName, usdt.address, now + 300000, {
-      from: mainAccount,
-    });
+    // await core.deployPool(tokenName, usdt.address, startTime, {
+    //   from: mainAccount,
+    // });
 
     const address = await core.findAddressbyName(tokenName, {
       from: mainAccount,
     });
+    console.log("Token address:", address);
 
     const pairAddress = await factory.getPairAddress(address, usdt.address, {
       from: mainAccount,
