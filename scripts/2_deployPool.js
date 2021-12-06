@@ -1,3 +1,5 @@
+// truffle exec scripts/2_deployPool.js --network fuji --name BTC_30000_L_202101
+
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyFactory = artifacts.require("NaughtyFactory");
 const NaughtyRouter = artifacts.require("NaughtyRouter");

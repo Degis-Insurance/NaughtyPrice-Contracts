@@ -1,3 +1,5 @@
+// truffle exec scripts/1_deployPolicyToken.js --network fuji --token BTC --K 30000 --isCall 0 --round 202101
+
 const PolicyCore = artifacts.require("PolicyCore");
 const NaughtyFactory = artifacts.require("NaughtyFactory");
 
