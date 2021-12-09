@@ -3,18 +3,21 @@ const NaughtyLibrary = artifacts.require("NaughtyLibrary");
 
 const fs = require("fs");
 
-module.exports = async function (deployer, network) {
+module.exports = async function (deployer, network, accounts) {
+  // Read the addressList
   const addressList = JSON.parse(fs.readFileSync("address.json"));
 
-  const buyerToken_add = addressList.BuyerToken;
-  const factory_add = addressList.NaughtyFactory;
+  const buyerToken_address = addressList.ref.BuyerToken;
+  const factory_address = addressList[network].NaughtyFactory;
 
+  // Deployment
   await deployer.deploy(NaughtyLibrary);
   await deployer.link(NaughtyLibrary, NaughtyRouter);
+  await deployer.deploy(NaughtyRouter, factory_address, buyerToken_address);
 
-  await deployer.deploy(NaughtyRouter, factory_add, buyerToken_add);
-
-  addressList.NaughtyRouter = NaughtyRouter.address;
-
+  // Store the address
+  addressList[network].NaughtyRouter = NaughtyRouter.address;
+  addressList[network].NaughtyLibrary = NaughtyLibrary.address;
+  // addressList[network].deployerAddress = accounts[0];
   fs.writeFileSync("address.json", JSON.stringify(addressList, null, "\t"));
 };
