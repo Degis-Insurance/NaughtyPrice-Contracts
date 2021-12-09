@@ -4,13 +4,13 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/INPPolicyToken.sol";
 
 /**
- * @title  Policy Token
+ * @title  Policy Token for Naughty Price
  * @notice This is the contract for token price policy token.
  *         It is a ERC20 token with an owner and a minter.
  *         The owner should be the deployer at first.
  *         The minter should be the policyCore contract.
  * @dev    It is different from the flight delay token.
- *         That is a ERC721 NFT and this is a ERC20 token.
+ *         That is an ERC721 NFT and this is an ERC20 token.
  */
 contract NPPolicyToken is ERC20, INPPolicyToken {
     address public owner;
@@ -25,6 +25,10 @@ contract NPPolicyToken is ERC20, INPPolicyToken {
         owner = _owner;
         minter = _owner;
     }
+
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************* Modifiers **************************************** //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Only the owner can call some functions
@@ -42,6 +46,10 @@ contract NPPolicyToken is ERC20, INPPolicyToken {
         _;
     }
 
+    // ---------------------------------------------------------------------------------------- //
+    // *********************************** Set Functions ************************************** //
+    // ---------------------------------------------------------------------------------------- //
+
     /**
      * @notice Pass the minter role to a new address
      * @param _newMinter Address of new minter
@@ -51,6 +59,10 @@ contract NPPolicyToken is ERC20, INPPolicyToken {
         minter = _newMinter;
         emit MinterRoleChanged(oldMinter, _newMinter);
     }
+
+    // ---------------------------------------------------------------------------------------- //
+    // *********************************** Main Functions ************************************* //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Mint some policy tokens

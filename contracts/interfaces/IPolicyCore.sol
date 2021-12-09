@@ -10,18 +10,25 @@ interface IPolicyCore {
         uint256 settleTimestamp;
     }
 
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************ Events ******************************************** //
+    // ---------------------------------------------------------------------------------------- //
+
     event FinalResultSettled(
         string _policyTokenName,
         int256 price,
         bool isHappened
     );
     event NewStablecoinAdded(address _newStablecoin);
-    event PurchaseIncentiveRatioSet(uint256 _newRatio);
 
     event FinishSettlementPolicies(
         address _policyTokenAddress,
         address _stablecoin
     );
+
+    // ---------------------------------------------------------------------------------------- //
+    // ************************************ Functions ***************************************** //
+    // ---------------------------------------------------------------------------------------- //
 
     /**
      * @notice Find the address by its name

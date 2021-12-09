@@ -20,7 +20,7 @@ library NaughtyLibrary {
         uint256 _amountIn,
         address _tokenIn,
         address _tokenOut
-    ) internal view returns (uint256 amounts) {
+    ) internal view returns (uint256 amount) {
         (uint256 reserveA, uint256 reserveB) = getReserves(
             factory,
             _tokenIn,
@@ -33,7 +33,7 @@ library NaughtyLibrary {
             ? (reserveB, reserveA)
             : (reserveA, reserveB);
 
-        amounts = _calcAmountOut(_amountIn, reserveIn, reserveOut);
+        amount = _calcAmountOut(_amountIn, reserveIn, reserveOut);
     }
 
     /**
@@ -50,7 +50,7 @@ library NaughtyLibrary {
         uint256 _amountOut,
         address _tokenIn,
         address _tokenOut
-    ) internal view returns (uint256 amounts) {
+    ) internal view returns (uint256 amount) {
         (uint256 reserveA, uint256 reserveB) = getReserves(
             factory,
             _tokenIn,
@@ -62,7 +62,7 @@ library NaughtyLibrary {
             ? (reserveB, reserveA)
             : (reserveA, reserveB);
 
-        amounts = _calcAmountIn(_amountOut, reserveIn, reserveOut);
+        amount = _calcAmountIn(_amountOut, reserveIn, reserveOut);
     }
 
     /**

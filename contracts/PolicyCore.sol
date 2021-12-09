@@ -63,10 +63,10 @@ contract PolicyCore is IPolicyCore {
     string[] allPolicyTokens;
 
     // Stablecoin address => Supported or not
-    mapping(address => bool) stablecoin;
+    mapping(address => bool) public stablecoin;
 
     // Policy token address => Stablecoin address
-    mapping(address => address) whichStablecoin;
+    mapping(address => address) public whichStablecoin;
 
     // PolicyToken => Strike Token (e.g. AVAX30L202101 address => AVAX address)
     mapping(address => string) policyTokenToOriginal;
@@ -245,6 +245,7 @@ contract PolicyCore is IPolicyCore {
      * @param _coinAddress Address of the stablecoin
      * @return Whether it is a supported stablecoin
      */
+    // TODO:If we still need this function
     function isStablecoinAddress(address _coinAddress)
         external
         view
