@@ -10,7 +10,7 @@ const tokenName = args["name"];
 
 const fs = require("fs");
 
-const startTime = "1639310400";
+const startTime = "1639915200";
 
 module.exports = async (callback) => {
   try {
@@ -19,23 +19,23 @@ module.exports = async (callback) => {
 
     const addressList = JSON.parse(fs.readFileSync("address.json"));
 
-    const factory = await NaughtyFactory.at(addressList.NaughtyFactory);
+    const factory = await NaughtyFactory.at(addressList.fuji.NaughtyFactory);
     console.log(factory.address);
 
-    const core = await PolicyCore.at(addressList.PolicyCore);
+    const core = await PolicyCore.at(addressList.fuji.PolicyCore);
     console.log(core.address);
 
-    const router = await NaughtyRouter.at(addressList.NaughtyRouter);
-    console.log(router.address);
+    // const router = await NaughtyRouter.at(addressList.fuji.NaughtyRouter);
+    // console.log(router.address);
 
-    const usdt = await USD.at(addressList.USDT);
-    const hasAddedStablecoin = await core.isStablecoinAddress(usdt.address);
-    if (!hasAddedStablecoin) {
-      await core.addStablecoin(usdt.address, { from: mainAccount });
-    }
+    const usdt = await USD.at(addressList.ref.MockUSD);
+    // const hasAddedStablecoin = await core.isStablecoinAddress(usdt.address);
+    // if (!hasAddedStablecoin) {
+    //   await core.addStablecoin(usdt.address, { from: mainAccount });
+    // }
 
-    let now = new Date().getTime();
-    now = parseInt(now / 1000);
+    // let now = new Date().getTime();
+    // now = parseInt(now / 1000);
 
     // await core.deployPool(tokenName, usdt.address, startTime, {
     //   from: mainAccount,
@@ -51,10 +51,10 @@ module.exports = async (callback) => {
     });
     console.log("Pair address:", pairAddress);
 
-    const coreinRouter = await router.policyCore.call();
-    if (coreinRouter != core.address) {
-      await router.setPolicyCore(core.address, { from: mainAccount });
-    }
+    // const coreinRouter = await router.policyCore.call();
+    // if (coreinRouter != core.address) {
+    //   await router.setPolicyCore(core.address, { from: mainAccount });
+    // }
 
     callback(true);
   } catch (err) {

@@ -24,10 +24,10 @@ module.exports = async (callback) => {
 
     const addressList = JSON.parse(fs.readFileSync("address.json"));
 
-    const core = await PolicyCore.at(addressList.PolicyCore);
+    const core = await PolicyCore.at(addressList.fuji.PolicyCore);
     console.log("policyCore address:", core.address);
 
-    const factory = await NaughtyFactory.at(addressList.NaughtyFactory);
+    const factory = await NaughtyFactory.at(addressList.fuji.NaughtyFactory);
 
     await factory.setPolicyCoreAddress(core.address, {
       from: mainAccount,
@@ -37,8 +37,8 @@ module.exports = async (callback) => {
     now = parseInt(now / 1000);
     console.log("now timestamp:", now);
 
-    const startTime = "1639310400"; //""
-    const stopTime = "1639396800"; //
+    const startTime = "1639915200"; //"12-19"
+    const stopTime = "1640001600"; //"12-20"
 
     const boolisCall = isCall == 1 ? true : false;
     await core.deployPolicyToken(
